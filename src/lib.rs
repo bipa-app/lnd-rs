@@ -1,7 +1,3 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+/// Module including all tonic-build generated code.
+/// Each sub-module represents one proto service.
+pub mod lnrpc;
