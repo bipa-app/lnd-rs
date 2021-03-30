@@ -21,7 +21,7 @@ use tonic::{
     Interceptor, Response, Status,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Lnd {
     lightning_client: LightningClient<Channel>,
 }
