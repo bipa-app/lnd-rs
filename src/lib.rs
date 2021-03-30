@@ -21,10 +21,12 @@ use tonic::{
     Interceptor, Response, Status,
 };
 
+#[derive(Debug)]
 pub struct Lnd {
     lightning_client: LightningClient<Channel>,
 }
 
+#[derive(Debug)]
 pub enum LndConnectError {
     Connector(ErrorStack),
     Interceptor(InvalidMetadataValue),
