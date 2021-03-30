@@ -4,6 +4,7 @@ fn main() -> Result<(), std::io::Error> {
     tonic_build::configure()
         .build_server(false)
         .out_dir("src/lnrpc")
+        .format(false)
         .compile(
             &[
                 "protos/autopilot.proto",
