@@ -14,6 +14,7 @@ use openssl::{
     x509::X509,
 };
 use std::convert::TryInto;
+use tokio::fs;
 use tonic::{
     codegen::StdError,
     metadata::{errors::InvalidMetadataValue, MetadataValue},
@@ -28,6 +29,7 @@ pub struct Lnd {
 
 #[derive(Debug)]
 pub enum LndConnectError {
+    IO(std::io::Error),
     Connector(ErrorStack),
     Interceptor(InvalidMetadataValue),
     Transport(tonic::transport::Error),
@@ -36,27 +38,41 @@ pub enum LndConnectError {
 impl Lnd {
     pub async fn connect<D>(
         destination: D,
-        certificate_bytes: &[u8],
-        macaroon_bytes: &[u8],
+        certificate_path: &str,
+        macaroon_path: &str,
     ) -> Result<Self, LndConnectError>
     where
         D: TryInto<Endpoint>,
         D::Error: Into<StdError>,
     {
-        let https_connector =
-            Lnd::connector(certificate_bytes).map_err(LndConnectError::Connector)?;
+        let (certificate, macaroon) = Lnd::read(certificate_path, macaroon_path)
+            .await
+            .map_err(LndConnectError::IO)?;
 
-        let interceptor = Lnd::interceptor(macaroon_bytes).map_err(LndConnectError::Interceptor)?;
+        let connector = Lnd::connector(&certificate).map_err(LndConnectError::Connector)?;
+        let interceptor = Lnd::interceptor(&macaroon).map_err(LndConnectError::Interceptor)?;
 
         let transport = tonic::transport::Endpoint::new(destination)
             .map_err(LndConnectError::Transport)?
-            .connect_with_connector(https_connector)
+            .connect_with_connector(connector)
             .await
             .map_err(LndConnectError::Transport)?;
 
         let lightning_client = LightningClient::with_interceptor(transport, interceptor);
 
         Ok(Lnd { lightning_client })
+    }
+
+    async fn read(
+        certificate_path: &str,
+        macaroon_path: &str,
+    ) -> Result<(Vec<u8>, Vec<u8>), std::io::Error> {
+        let results = tokio::join!(fs::read(certificate_path), fs::read(macaroon_path));
+
+        match results {
+            (Ok(c), Ok(m)) => Ok((c, m)),
+            (Err(e), _) | (_, Err(e)) => Err(e),
+        }
     }
 
     fn connector(certificate_bytes: &[u8]) -> Result<HttpsConnector<HttpConnector>, ErrorStack> {
