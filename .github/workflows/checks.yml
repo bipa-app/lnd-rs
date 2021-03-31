@@ -17,14 +17,5 @@ jobs:
       - name: Install host dependencies
         run: apt-get update && apt-get install -y libssl-dev pkg-config
 
-      - name: Cache dependencies
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            bipa_cli/target
-          key: lnd-rs-cargo-${{ hashFiles('**/Cargo.lock') }}
-
       - name: Build project
         run: cargo build
