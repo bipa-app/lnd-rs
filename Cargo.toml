@@ -15,5 +15,9 @@ hyper = "0.13"
 hyper-openssl = "0.8"
 hex = "0.4"
 
+[dependencies.tokio]
+version = "0.2"
+features = ["fs", "macros"]
+
 [build-dependencies]
 tonic-build = "0.3.1"
