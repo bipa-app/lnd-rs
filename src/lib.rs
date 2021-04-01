@@ -6,8 +6,8 @@ use hyper::client::HttpConnector;
 use hyper_openssl::HttpsConnector;
 use lnrpc::lnrpc::{
     lightning_client::LightningClient, ChannelBalanceRequest, ChannelBalanceResponse, Invoice,
-    ListPaymentsRequest, ListPaymentsResponse, PaymentHash, WalletBalanceRequest,
-    WalletBalanceResponse,
+    ListPaymentsRequest, ListPaymentsResponse, PayReq, PayReqString, PaymentHash,
+    WalletBalanceRequest, WalletBalanceResponse,
 };
 use openssl::{
     error::ErrorStack,
@@ -84,16 +84,16 @@ impl Lnd {
 }
 
 impl Lnd {
-    pub async fn wallet_balance(&mut self) -> Result<WalletBalanceResponse, Status> {
+    pub async fn channel_balance(&mut self) -> Result<ChannelBalanceResponse, Status> {
         self.lightning_client
-            .wallet_balance(WalletBalanceRequest {})
+            .channel_balance(ChannelBalanceRequest {})
             .await
             .map(Response::into_inner)
     }
 
-    pub async fn channel_balance(&mut self) -> Result<ChannelBalanceResponse, Status> {
+    pub async fn decode_pay_req(&mut self, pay_req: String) -> Result<PayReq, Status> {
         self.lightning_client
-            .channel_balance(ChannelBalanceRequest {})
+            .decode_pay_req(PayReqString { pay_req })
             .await
             .map(Response::into_inner)
     }
@@ -122,6 +122,13 @@ impl Lnd {
                 r_hash_str: String::from(""),
                 r_hash,
             })
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn wallet_balance(&mut self) -> Result<WalletBalanceResponse, Status> {
+        self.lightning_client
+            .wallet_balance(WalletBalanceRequest {})
             .await
             .map(Response::into_inner)
     }
