@@ -84,13 +84,6 @@ impl Lnd {
 }
 
 impl Lnd {
-    pub async fn wallet_balance(&mut self) -> Result<WalletBalanceResponse, Status> {
-        self.lightning_client
-            .wallet_balance(WalletBalanceRequest {})
-            .await
-            .map(Response::into_inner)
-    }
-
     pub async fn channel_balance(&mut self) -> Result<ChannelBalanceResponse, Status> {
         self.lightning_client
             .channel_balance(ChannelBalanceRequest {})
@@ -129,6 +122,13 @@ impl Lnd {
                 r_hash_str: String::from(""),
                 r_hash,
             })
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn wallet_balance(&mut self) -> Result<WalletBalanceResponse, Status> {
+        self.lightning_client
+            .wallet_balance(WalletBalanceRequest {})
             .await
             .map(Response::into_inner)
     }
