@@ -6,8 +6,8 @@ use hyper::client::HttpConnector;
 use hyper_openssl::HttpsConnector;
 use lnrpc::lnrpc::{
     lightning_client::LightningClient, ChannelBalanceRequest, ChannelBalanceResponse, Invoice,
-    ListPaymentsRequest, ListPaymentsResponse, PaymentHash, WalletBalanceRequest,
-    WalletBalanceResponse,
+    ListPaymentsRequest, ListPaymentsResponse, PayReq, PayReqString, PaymentHash,
+    WalletBalanceRequest, WalletBalanceResponse,
 };
 use openssl::{
     error::ErrorStack,
@@ -94,6 +94,13 @@ impl Lnd {
     pub async fn channel_balance(&mut self) -> Result<ChannelBalanceResponse, Status> {
         self.lightning_client
             .channel_balance(ChannelBalanceRequest {})
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn decode_pay_req(&mut self, pay_req: String) -> Result<PayReq, Status> {
+        self.lightning_client
+            .decode_pay_req(PayReqString { pay_req })
             .await
             .map(Response::into_inner)
     }
