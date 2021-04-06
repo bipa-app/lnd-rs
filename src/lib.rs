@@ -28,10 +28,13 @@ pub struct Lnd {
     lightning_client: LightningClient<Channel>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum LndConnectError {
+    #[error("Connector creation failed: #{0}")]
     Connector(ErrorStack),
+    #[error("Interceptor creation failed: #{0}")]
     Interceptor(InvalidMetadataValue),
+    #[error("Transport connection failed: #{0}")]
     Transport(tonic::transport::Error),
 }
 
