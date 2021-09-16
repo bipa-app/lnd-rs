@@ -17,15 +17,16 @@ use openssl::{
 };
 use std::convert::TryInto;
 use tonic::{
-    codegen::StdError,
-    metadata::{errors::InvalidMetadataValue, MetadataValue},
+    codegen::{InterceptedService, StdError},
+    metadata::{errors::InvalidMetadataValue, Ascii, MetadataValue},
+    service::Interceptor,
     transport::{Channel, Endpoint},
-    Interceptor, Response, Status,
+    Response, Status,
 };
 
 #[derive(Debug, Clone)]
 pub struct Lnd {
-    lightning_client: LightningClient<Channel>,
+    lightning_client: LightningClient<InterceptedService<Channel, LndInterceptor>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -77,13 +78,24 @@ impl Lnd {
         HttpsConnector::with_connector(http, connector)
     }
 
-    fn interceptor(macaroon_bytes: &[u8]) -> Result<Interceptor, InvalidMetadataValue> {
+    fn interceptor(macaroon_bytes: &[u8]) -> Result<LndInterceptor, InvalidMetadataValue> {
         let metadata = MetadataValue::from_str(&hex::encode(macaroon_bytes))?;
+        Ok(LndInterceptor { metadata })
+    }
+}
 
-        Ok(Interceptor::new(move |mut request| {
-            request.metadata_mut().insert("macaroon", metadata.clone());
-            Ok(request)
-        }))
+#[derive(Debug, Clone)]
+struct LndInterceptor {
+    metadata: MetadataValue<Ascii>,
+}
+
+impl Interceptor for LndInterceptor {
+    fn call(&mut self, mut request: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
+        request
+            .metadata_mut()
+            .insert("macaroon", self.metadata.clone());
+
+        Ok(request)
     }
 }
 
@@ -128,11 +140,13 @@ impl Lnd {
     }
 
     pub async fn lookup_invoice(&mut self, r_hash: Vec<u8>) -> Result<Invoice, Status> {
+        #[allow(deprecated)]
+        let payment_hash = PaymentHash {
+            r_hash_str: String::from(""),
+            r_hash,
+        };
         self.lightning_client
-            .lookup_invoice(PaymentHash {
-                r_hash_str: String::from(""),
-                r_hash,
-            })
+            .lookup_invoice(payment_hash)
             .await
             .map(Response::into_inner)
     }
