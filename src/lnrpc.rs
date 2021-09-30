@@ -1,11 +1,1 @@
-pub mod autopilotrpc;
-pub mod chainrpc;
-pub mod invoicesrpc;
-pub mod lnclipb;
 pub mod lnrpc;
-pub mod routerrpc;
-pub mod signrpc;
-pub mod verrpc;
-pub mod walletrpc;
-pub mod watchtowerrpc;
-pub mod wtclientrpc;
