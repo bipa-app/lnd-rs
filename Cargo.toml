@@ -8,13 +8,13 @@ edition = "2018"
 name = "lnd"
 
 [dependencies]
-tonic = "0.3"
-prost = "0.6"
+tonic = "0.5"
+prost = "0.8"
 openssl = "0.10"
-hyper = "0.13"
-hyper-openssl = "0.8"
+hyper = "0.14"
+hyper-openssl = "0.9"
 hex = "0.4"
 thiserror = "1.0"
 
 [build-dependencies]
-tonic-build = "0.3"
+tonic-build = "0.5"
