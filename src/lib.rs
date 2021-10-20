@@ -43,6 +43,28 @@ impl Lnd {
     pub async fn connect<D>(
         destination: D,
         certificate_bytes: &[u8],
+    ) -> Result<Self, LndConnectError>
+    where
+        D: TryInto<Endpoint>,
+        D::Error: Into<StdError>,
+    {
+        let https_connector =
+            Lnd::connector(certificate_bytes).map_err(LndConnectError::Connector)?;
+
+        let transport = tonic::transport::Endpoint::new(destination)
+            .map_err(LndConnectError::Transport)?
+            .connect_with_connector(https_connector)
+            .await
+            .map_err(LndConnectError::Transport)?;
+
+        let lightning_client = LightningClient::with_interceptor(transport, LndInterceptor::noop());
+
+        Ok(Lnd { lightning_client })
+    }
+
+    pub async fn connect_with_macaroon<D>(
+        destination: D,
+        certificate_bytes: &[u8],
         macaroon_bytes: &[u8],
     ) -> Result<Self, LndConnectError>
     where
@@ -52,7 +74,8 @@ impl Lnd {
         let https_connector =
             Lnd::connector(certificate_bytes).map_err(LndConnectError::Connector)?;
 
-        let interceptor = Lnd::interceptor(macaroon_bytes).map_err(LndConnectError::Interceptor)?;
+        let interceptor =
+            LndInterceptor::macaroon(macaroon_bytes).map_err(LndConnectError::Interceptor)?;
 
         let transport = tonic::transport::Endpoint::new(destination)
             .map_err(LndConnectError::Transport)?
@@ -77,23 +100,32 @@ impl Lnd {
 
         HttpsConnector::with_connector(http, connector)
     }
-
-    fn interceptor(macaroon_bytes: &[u8]) -> Result<LndInterceptor, InvalidMetadataValue> {
-        let metadata = MetadataValue::from_str(&hex::encode(macaroon_bytes))?;
-        Ok(LndInterceptor { metadata })
-    }
 }
 
 #[derive(Debug, Clone)]
 struct LndInterceptor {
-    metadata: MetadataValue<Ascii>,
+    macaroon: Option<MetadataValue<Ascii>>,
+}
+
+impl LndInterceptor {
+    fn macaroon(bytes: &[u8]) -> Result<Self, InvalidMetadataValue> {
+        let macaroon = MetadataValue::from_str(&hex::encode(bytes))?;
+
+        Ok(Self {
+            macaroon: Some(macaroon),
+        })
+    }
+
+    fn noop() -> Self {
+        Self { macaroon: None }
+    }
 }
 
 impl Interceptor for LndInterceptor {
     fn call(&mut self, mut request: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
-        request
-            .metadata_mut()
-            .insert("macaroon", self.metadata.clone());
+        if let Some(macaroon) = self.macaroon.as_ref().cloned() {
+            request.metadata_mut().insert("macaroon", macaroon);
+        }
 
         Ok(request)
     }
