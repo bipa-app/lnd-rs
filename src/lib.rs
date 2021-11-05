@@ -6,7 +6,8 @@ use hyper::client::HttpConnector;
 use hyper_openssl::HttpsConnector;
 use lnrpc::lnrpc::{
     lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
-    ChannelBalanceResponse, Invoice, ListPaymentsRequest, ListPaymentsResponse, PayReq,
+    ChannelBalanceResponse, Invoice, ListPaymentsRequest, ListPaymentsResponse,
+    ListInvoiceRequest, ListInvoiceResponse, PayReq,
     PayReqString, PaymentHash, SendRequest, SendResponse, WalletBalanceRequest,
     WalletBalanceResponse,
 };
@@ -165,6 +166,24 @@ impl Lnd {
                 include_incomplete,
                 index_offset,
                 max_payments,
+                reversed,
+            })
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn list_invoices(
+        &mut self,
+        pending_only: bool,
+        index_offset: u64,
+        num_max_invoices: u64,
+        reversed: bool,
+    ) -> Result<ListInvoiceResponse, Status> {
+        self.lightning_client
+            .list_invoices(ListInvoiceRequest {
+                pending_only,
+                index_offset,
+                num_max_invoices,
                 reversed,
             })
             .await
