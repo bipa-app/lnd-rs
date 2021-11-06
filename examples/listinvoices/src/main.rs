@@ -19,17 +19,14 @@ async fn main() {
     let node_address = "https://".to_owned() + env_lnd_url.unwrap().as_str();
 
     //Make the connection to LND
-    let mut lightning;
-    match lnd::Lnd::connect_with_macaroon(node_address.clone(), &cert, &macaroon).await {
-        Ok(lndconn) => {
-            lightning = lndconn;
-        }
+    let mut lightning = match lnd::Lnd::connect_with_macaroon(node_address.clone(), &cert, &macaroon).await {
+        Ok(lndconn) => lndconn,
         Err(e) => {
             println!("Could not connect to: {} using tls and macaroon", node_address);
             eprintln!("{}", e);
             std::process::exit(1);
-        }
-    }
+        },
+    };
 
     //Enter a loop of pulling invoices
     let mut current_index: u64 = 0;
