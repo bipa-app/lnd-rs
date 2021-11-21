@@ -1,16 +1,17 @@
 /// Module including all tonic-build generated code.
 /// Each sub-module represents one proto service.
-pub mod lnrpc;
+mod gen;
+pub use gen::{lnrpc, routerrpc};
 
-use hyper::client::HttpConnector;
-use hyper_openssl::HttpsConnector;
-use lnrpc::lnrpc::{
+use gen::lnrpc::{
     lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
     ChannelBalanceResponse, Invoice, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
     ListPaymentsResponse, PayReq, PayReqString, PaymentHash, SendRequest, SendResponse,
     WalletBalanceRequest, WalletBalanceResponse,
 };
-use lnrpc::routerrpc::router_client::RouterClient;
+use gen::routerrpc::router_client::RouterClient;
+use hyper::client::HttpConnector;
+use hyper_openssl::HttpsConnector;
 use openssl::{
     error::ErrorStack,
     ssl::{SslConnector, SslMethod},

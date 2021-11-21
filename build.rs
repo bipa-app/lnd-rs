@@ -1,4 +1,4 @@
-const BUILD_DIR: &'static str = "src/lnrpc";
+const BUILD_DIR: &'static str = "src/gen";
 
 const PROTOS_NS: &'static str = "protos";
 const PROTOS: [&'static str; 2] = ["protos/rpc.proto", "protos/router.proto"];
