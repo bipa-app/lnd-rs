@@ -1,8 +1,8 @@
 [package]
 name = "lnd-rs"
 version = "0.1.0"
-authors = ["lsunsi <sunsi.lucas@gmail.com>", "Luiz Parreira <luizfilipester@gmail.com.br>"]
-edition = "2018"
+authors = ["lsunsi <lsunsi@pm.me>", "Luiz Parreira <luizfilipester@gmail.com.br>"]
+edition = "2021"
 
 [lib]
 name = "lnd"
