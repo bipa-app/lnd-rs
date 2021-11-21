@@ -9,7 +9,7 @@ use gen::lnrpc::{
     ListPaymentsResponse, PayReq, PayReqString, Payment, PaymentHash, SendRequest, SendResponse,
     WalletBalanceRequest, WalletBalanceResponse,
 };
-use gen::routerrpc::{router_client::RouterClient, SendPaymentRequest};
+use gen::routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest};
 
 use hyper::client::HttpConnector;
 use hyper_openssl::HttpsConnector;
@@ -230,6 +230,20 @@ impl Lnd {
     ) -> Result<Streaming<Payment>, Status> {
         self.router
             .send_payment_v2(req)
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn track_payment(
+        &mut self,
+        payment_hash: Vec<u8>,
+        no_inflight_updates: bool,
+    ) -> Result<Streaming<Payment>, Status> {
+        self.router
+            .track_payment_v2(TrackPaymentRequest {
+                no_inflight_updates,
+                payment_hash,
+            })
             .await
             .map(Response::into_inner)
     }
