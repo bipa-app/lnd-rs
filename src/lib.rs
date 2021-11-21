@@ -6,10 +6,11 @@ pub use gen::{lnrpc, routerrpc};
 use gen::lnrpc::{
     lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
     ChannelBalanceResponse, Invoice, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
-    ListPaymentsResponse, PayReq, PayReqString, PaymentHash, SendRequest, SendResponse,
+    ListPaymentsResponse, PayReq, PayReqString, Payment, PaymentHash, SendRequest, SendResponse,
     WalletBalanceRequest, WalletBalanceResponse,
 };
-use gen::routerrpc::router_client::RouterClient;
+use gen::routerrpc::{router_client::RouterClient, SendPaymentRequest};
+
 use hyper::client::HttpConnector;
 use hyper_openssl::HttpsConnector;
 use openssl::{
@@ -18,6 +19,7 @@ use openssl::{
     x509::X509,
 };
 use std::convert::TryInto;
+use tonic::Streaming;
 use tonic::{
     codegen::{InterceptedService, StdError},
     metadata::{errors::InvalidMetadataValue, Ascii, MetadataValue},
@@ -218,6 +220,16 @@ impl Lnd {
     pub async fn wallet_balance(&mut self) -> Result<WalletBalanceResponse, Status> {
         self.lightning
             .wallet_balance(WalletBalanceRequest {})
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn send_payment(
+        &mut self,
+        req: SendPaymentRequest,
+    ) -> Result<Streaming<Payment>, Status> {
+        self.router
+            .send_payment_v2(req)
             .await
             .map(Response::into_inner)
     }
