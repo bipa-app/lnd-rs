@@ -6,16 +6,12 @@ on:
   push:
     branches: [master]
 
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: rust:1.51-slim-buster
+
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v2
-
-      - name: Install host dependencies
-        run: apt-get update && apt-get install -y libssl-dev pkg-config
-
-      - name: Build project
-        run: cargo build
+      - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
+      - run: cargo +stable build --all-targets
