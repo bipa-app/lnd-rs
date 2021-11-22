@@ -9,5 +9,6 @@ fn main() -> Result<(), std::io::Error> {
     tonic_build::configure()
         .build_server(false)
         .out_dir(BUILD_DIR)
+        .format(false)
         .compile(&PROTOS, &[PROTOS_NS])
 }
