@@ -1,22 +1,25 @@
 /// Module including all tonic-build generated code.
 /// Each sub-module represents one proto service.
-pub mod lnrpc;
+mod gen;
+pub use gen::{lnrpc, routerrpc};
+
+use gen::lnrpc::{
+    lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
+    ChannelBalanceResponse, Invoice, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
+    ListPaymentsResponse, PayReq, PayReqString, Payment, PaymentHash, SendRequest, SendResponse,
+    WalletBalanceRequest, WalletBalanceResponse,
+};
+use gen::routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest};
 
 use hyper::client::HttpConnector;
 use hyper_openssl::HttpsConnector;
-use lnrpc::lnrpc::{
-    lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
-    ChannelBalanceResponse, Invoice, ListPaymentsRequest, ListPaymentsResponse,
-    ListInvoiceRequest, ListInvoiceResponse, PayReq,
-    PayReqString, PaymentHash, SendRequest, SendResponse, WalletBalanceRequest,
-    WalletBalanceResponse,
-};
 use openssl::{
     error::ErrorStack,
     ssl::{SslConnector, SslMethod},
     x509::X509,
 };
 use std::convert::TryInto;
+use tonic::Streaming;
 use tonic::{
     codegen::{InterceptedService, StdError},
     metadata::{errors::InvalidMetadataValue, Ascii, MetadataValue},
@@ -27,7 +30,8 @@ use tonic::{
 
 #[derive(Debug, Clone)]
 pub struct Lnd {
-    lightning_client: LightningClient<InterceptedService<Channel, LndInterceptor>>,
+    lightning: LightningClient<InterceptedService<Channel, LndInterceptor>>,
+    router: RouterClient<InterceptedService<Channel, LndInterceptor>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -58,9 +62,12 @@ impl Lnd {
             .await
             .map_err(LndConnectError::Transport)?;
 
-        let lightning_client = LightningClient::with_interceptor(transport, LndInterceptor::noop());
+        let interceptor = LndInterceptor::noop();
 
-        Ok(Lnd { lightning_client })
+        let lightning = LightningClient::with_interceptor(transport.clone(), interceptor.clone());
+        let router = RouterClient::with_interceptor(transport, interceptor);
+
+        Ok(Lnd { lightning, router })
     }
 
     pub async fn connect_with_macaroon<D>(
@@ -84,9 +91,10 @@ impl Lnd {
             .await
             .map_err(LndConnectError::Transport)?;
 
-        let lightning_client = LightningClient::with_interceptor(transport, interceptor);
+        let lightning = LightningClient::with_interceptor(transport.clone(), interceptor.clone());
+        let router = RouterClient::with_interceptor(transport, interceptor);
 
-        Ok(Lnd { lightning_client })
+        Ok(Lnd { lightning, router })
     }
 
     fn connector(certificate_bytes: &[u8]) -> Result<HttpsConnector<HttpConnector>, ErrorStack> {
@@ -110,11 +118,8 @@ struct LndInterceptor {
 
 impl LndInterceptor {
     fn macaroon(bytes: &[u8]) -> Result<Self, InvalidMetadataValue> {
-        let macaroon = MetadataValue::from_str(&hex::encode(bytes))?;
-
-        Ok(Self {
-            macaroon: Some(macaroon),
-        })
+        let macaroon = Some(MetadataValue::from_str(&hex::encode(bytes))?);
+        Ok(Self { macaroon })
     }
 
     fn noop() -> Self {
@@ -134,21 +139,21 @@ impl Interceptor for LndInterceptor {
 
 impl Lnd {
     pub async fn add_invoice(&mut self, invoice: Invoice) -> Result<AddInvoiceResponse, Status> {
-        self.lightning_client
+        self.lightning
             .add_invoice(invoice)
             .await
             .map(Response::into_inner)
     }
 
     pub async fn channel_balance(&mut self) -> Result<ChannelBalanceResponse, Status> {
-        self.lightning_client
+        self.lightning
             .channel_balance(ChannelBalanceRequest {})
             .await
             .map(Response::into_inner)
     }
 
     pub async fn decode_pay_req(&mut self, pay_req: String) -> Result<PayReq, Status> {
-        self.lightning_client
+        self.lightning
             .decode_pay_req(PayReqString { pay_req })
             .await
             .map(Response::into_inner)
@@ -161,7 +166,7 @@ impl Lnd {
         max_payments: u64,
         reversed: bool,
     ) -> Result<ListPaymentsResponse, Status> {
-        self.lightning_client
+        self.lightning
             .list_payments(ListPaymentsRequest {
                 include_incomplete,
                 index_offset,
@@ -179,7 +184,7 @@ impl Lnd {
         num_max_invoices: u64,
         reversed: bool,
     ) -> Result<ListInvoiceResponse, Status> {
-        self.lightning_client
+        self.lightning
             .list_invoices(ListInvoiceRequest {
                 pending_only,
                 index_offset,
@@ -196,7 +201,7 @@ impl Lnd {
             r_hash_str: String::from(""),
             r_hash,
         };
-        self.lightning_client
+        self.lightning
             .lookup_invoice(payment_hash)
             .await
             .map(Response::into_inner)
@@ -206,15 +211,39 @@ impl Lnd {
         &mut self,
         send_request: SendRequest,
     ) -> Result<SendResponse, Status> {
-        self.lightning_client
+        self.lightning
             .send_payment_sync(send_request)
             .await
             .map(Response::into_inner)
     }
 
     pub async fn wallet_balance(&mut self) -> Result<WalletBalanceResponse, Status> {
-        self.lightning_client
+        self.lightning
             .wallet_balance(WalletBalanceRequest {})
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn send_payment(
+        &mut self,
+        req: SendPaymentRequest,
+    ) -> Result<Streaming<Payment>, Status> {
+        self.router
+            .send_payment_v2(req)
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn track_payment(
+        &mut self,
+        payment_hash: Vec<u8>,
+        no_inflight_updates: bool,
+    ) -> Result<Streaming<Payment>, Status> {
+        self.router
+            .track_payment_v2(TrackPaymentRequest {
+                no_inflight_updates,
+                payment_hash,
+            })
             .await
             .map(Response::into_inner)
     }
