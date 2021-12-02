@@ -7,7 +7,7 @@ use gen::lnrpc::{
     lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
     ChannelBalanceResponse, Invoice, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
     ListPaymentsResponse, PayReq, PayReqString, Payment, PaymentHash, SendRequest, SendResponse,
-    WalletBalanceRequest, WalletBalanceResponse,
+    WalletBalanceRequest, WalletBalanceResponse, GetInfoRequest, GetInfoResponse
 };
 use gen::routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest};
 
@@ -138,6 +138,13 @@ impl Interceptor for LndInterceptor {
 }
 
 impl Lnd {
+    pub async fn get_info(&mut self) -> Result<GetInfoResponse, Status> {
+        self.lightning
+            .get_info(GetInfoRequest{})
+            .await
+            .map(Response::into_inner)
+    }
+
     pub async fn add_invoice(&mut self, invoice: Invoice) -> Result<AddInvoiceResponse, Status> {
         self.lightning
             .add_invoice(invoice)
