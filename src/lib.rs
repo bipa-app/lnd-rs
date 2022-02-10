@@ -5,9 +5,9 @@ pub use gen::{lnrpc, routerrpc};
 
 use gen::lnrpc::{
     lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
-    ChannelBalanceResponse, Invoice, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
-    ListPaymentsResponse, PayReq, PayReqString, Payment, PaymentHash, SendRequest, SendResponse,
-    WalletBalanceRequest, WalletBalanceResponse, GetInfoRequest, GetInfoResponse
+    ChannelBalanceResponse, GetInfoRequest, GetInfoResponse, Invoice, ListInvoiceRequest,
+    ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse, PayReq, PayReqString, Payment,
+    PaymentHash, SendRequest, SendResponse, WalletBalanceRequest, WalletBalanceResponse,
 };
 use gen::routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest};
 
@@ -60,6 +60,29 @@ impl Lnd {
             .map_err(LndConnectError::Transport)?
             .connect_with_connector(https_connector)
             .await
+            .map_err(LndConnectError::Transport)?;
+
+        let interceptor = LndInterceptor::noop();
+
+        let lightning = LightningClient::with_interceptor(transport.clone(), interceptor.clone());
+        let router = RouterClient::with_interceptor(transport, interceptor);
+
+        Ok(Lnd { lightning, router })
+    }
+
+    pub async fn connect_lazy<D>(
+        destination: D,
+        certificate_bytes: &[u8],
+    ) -> Result<Self, LndConnectError>
+    where
+        D: TryInto<Endpoint>,
+        D::Error: Into<StdError>,
+    {
+        let https_connector =
+            Lnd::connector(certificate_bytes).map_err(LndConnectError::Connector)?;
+
+        let transport = tonic::transport::Endpoint::new(destination)
+            .and_then(move |d| d.connect_with_connector_lazy(https_connector))
             .map_err(LndConnectError::Transport)?;
 
         let interceptor = LndInterceptor::noop();
@@ -140,7 +163,7 @@ impl Interceptor for LndInterceptor {
 impl Lnd {
     pub async fn get_info(&mut self) -> Result<GetInfoResponse, Status> {
         self.lightning
-            .get_info(GetInfoRequest{})
+            .get_info(GetInfoRequest {})
             .await
             .map(Response::into_inner)
     }
