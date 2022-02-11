@@ -285,10 +285,10 @@ impl Lnd {
 impl Lnd {
     pub async fn subscribe_single_invoice(
         &mut self,
-        req: SubscribeSingleInvoiceRequest,
+        r_hash: Vec<u8>,
     ) -> Result<Streaming<Invoice>, Status> {
         self.invoices
-            .subscribe_single_invoice(req)
+            .subscribe_single_invoice(SubscribeSingleInvoiceRequest { r_hash })
             .await
             .map(Response::into_inner)
     }
