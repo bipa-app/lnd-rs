@@ -1,8 +1,9 @@
 /// Module including all tonic-build generated code.
 /// Each sub-module represents one proto service.
 mod gen;
-pub use gen::{lnrpc, routerrpc};
+pub use gen::{invoicesrpc, lnrpc, routerrpc};
 
+use gen::invoicesrpc::{invoices_client::InvoicesClient, SubscribeSingleInvoiceRequest};
 use gen::lnrpc::{
     lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
     ChannelBalanceResponse, GetInfoRequest, GetInfoResponse, Invoice, ListInvoiceRequest,
@@ -31,6 +32,7 @@ use tonic::{
 #[derive(Debug, Clone)]
 pub struct Lnd {
     lightning: LightningClient<InterceptedService<Channel, LndInterceptor>>,
+    invoices: InvoicesClient<InterceptedService<Channel, LndInterceptor>>,
     router: RouterClient<InterceptedService<Channel, LndInterceptor>>,
 }
 
@@ -62,12 +64,7 @@ impl Lnd {
             .await
             .map_err(LndConnectError::Transport)?;
 
-        let interceptor = LndInterceptor::noop();
-
-        let lightning = LightningClient::with_interceptor(transport.clone(), interceptor.clone());
-        let router = RouterClient::with_interceptor(transport, interceptor);
-
-        Ok(Lnd { lightning, router })
+        Ok(Lnd::build(transport, LndInterceptor::noop()))
     }
 
     pub async fn connect_lazy<D>(
@@ -85,12 +82,7 @@ impl Lnd {
             .and_then(move |d| d.connect_with_connector_lazy(https_connector))
             .map_err(LndConnectError::Transport)?;
 
-        let interceptor = LndInterceptor::noop();
-
-        let lightning = LightningClient::with_interceptor(transport.clone(), interceptor.clone());
-        let router = RouterClient::with_interceptor(transport, interceptor);
-
-        Ok(Lnd { lightning, router })
+        Ok(Lnd::build(transport, LndInterceptor::noop()))
     }
 
     pub async fn connect_with_macaroon<D>(
@@ -114,10 +106,7 @@ impl Lnd {
             .await
             .map_err(LndConnectError::Transport)?;
 
-        let lightning = LightningClient::with_interceptor(transport.clone(), interceptor.clone());
-        let router = RouterClient::with_interceptor(transport, interceptor);
-
-        Ok(Lnd { lightning, router })
+        Ok(Lnd::build(transport, interceptor))
     }
 
     fn connector(certificate_bytes: &[u8]) -> Result<HttpsConnector<HttpConnector>, ErrorStack> {
@@ -131,6 +120,18 @@ impl Lnd {
         http.enforce_http(false);
 
         HttpsConnector::with_connector(http, connector)
+    }
+
+    fn build(channel: Channel, interceptor: LndInterceptor) -> Self {
+        let lightning = LightningClient::with_interceptor(channel.clone(), interceptor.clone());
+        let invoices = InvoicesClient::with_interceptor(channel.clone(), interceptor.clone());
+        let router = RouterClient::with_interceptor(channel, interceptor);
+
+        Lnd {
+            lightning,
+            invoices,
+            router,
+        }
     }
 }
 
@@ -253,7 +254,9 @@ impl Lnd {
             .await
             .map(Response::into_inner)
     }
+}
 
+impl Lnd {
     pub async fn send_payment(
         &mut self,
         req: SendPaymentRequest,
@@ -274,6 +277,18 @@ impl Lnd {
                 no_inflight_updates,
                 payment_hash,
             })
+            .await
+            .map(Response::into_inner)
+    }
+}
+
+impl Lnd {
+    pub async fn subscribe_single_invoice(
+        &mut self,
+        req: SubscribeSingleInvoiceRequest,
+    ) -> Result<Streaming<Invoice>, Status> {
+        self.invoices
+            .subscribe_single_invoice(req)
             .await
             .map(Response::into_inner)
     }
