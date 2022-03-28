@@ -3,6 +3,7 @@ name = "lnd-rs"
 version = "0.1.0"
 authors = ["lsunsi <lsunsi@pm.me>", "Luiz Parreira <luizfilipester@gmail.com.br>"]
 edition = "2021"
+license = "MIT"
 
 [lib]
 name = "lnd"
