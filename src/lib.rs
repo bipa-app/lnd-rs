@@ -79,7 +79,7 @@ impl Lnd {
             Lnd::connector(certificate_bytes).map_err(LndConnectError::Connector)?;
 
         let transport = tonic::transport::Endpoint::new(destination)
-            .and_then(move |d| d.connect_with_connector_lazy(https_connector))
+            .map(move |d| d.connect_with_connector_lazy(https_connector))
             .map_err(LndConnectError::Transport)?;
 
         Ok(Lnd::build(transport, LndInterceptor::noop()))
@@ -142,7 +142,7 @@ struct LndInterceptor {
 
 impl LndInterceptor {
     fn macaroon(bytes: &[u8]) -> Result<Self, InvalidMetadataValue> {
-        let macaroon = Some(MetadataValue::from_str(&hex::encode(bytes))?);
+        let macaroon = Some(MetadataValue::try_from(&hex::encode(bytes))?);
         Ok(Self { macaroon })
     }
 
