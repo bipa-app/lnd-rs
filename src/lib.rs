@@ -31,9 +31,9 @@ use tonic::{
 
 #[derive(Debug, Clone)]
 pub struct Lnd {
-    lightning: LightningClient<InterceptedService<Channel, LndInterceptor>>,
-    invoices: InvoicesClient<InterceptedService<Channel, LndInterceptor>>,
-    router: RouterClient<InterceptedService<Channel, LndInterceptor>>,
+    pub lightning: LightningClient<InterceptedService<Channel, LndInterceptor>>,
+    pub invoices: InvoicesClient<InterceptedService<Channel, LndInterceptor>>,
+    pub router: RouterClient<InterceptedService<Channel, LndInterceptor>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -136,7 +136,7 @@ impl Lnd {
 }
 
 #[derive(Debug, Clone)]
-struct LndInterceptor {
+pub struct LndInterceptor {
     macaroon: Option<MetadataValue<Ascii>>,
 }
 
@@ -162,6 +162,7 @@ impl Interceptor for LndInterceptor {
 }
 
 impl Lnd {
+
     pub async fn get_info(&mut self) -> Result<GetInfoResponse, Status> {
         self.lightning
             .get_info(GetInfoRequest {})
@@ -254,6 +255,7 @@ impl Lnd {
             .await
             .map(Response::into_inner)
     }
+
 }
 
 impl Lnd {
