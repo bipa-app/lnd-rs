@@ -6,9 +6,10 @@ pub use gen::{invoicesrpc, lnrpc, routerrpc};
 use gen::invoicesrpc::{invoices_client::InvoicesClient, SubscribeSingleInvoiceRequest};
 use gen::lnrpc::{
     lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
-    ChannelBalanceResponse, GetInfoRequest, GetInfoResponse, Invoice, ListInvoiceRequest,
-    ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse, PayReq, PayReqString, Payment,
-    PaymentHash, SendRequest, SendResponse, WalletBalanceRequest, WalletBalanceResponse,
+    ChannelBalanceResponse, ForwardingHistoryRequest, ForwardingHistoryResponse, GetInfoRequest,
+    GetInfoResponse, Invoice, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
+    ListPaymentsResponse, PayReq, PayReqString, Payment, PaymentHash, SendRequest, SendResponse,
+    WalletBalanceRequest, WalletBalanceResponse,
 };
 use gen::routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest};
 
@@ -251,6 +252,16 @@ impl Lnd {
     pub async fn wallet_balance(&mut self) -> Result<WalletBalanceResponse, Status> {
         self.lightning
             .wallet_balance(WalletBalanceRequest {})
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn forwarding_history(
+        &mut self,
+        req: ForwardingHistoryRequest,
+    ) -> Result<ForwardingHistoryResponse, Status> {
+        self.lightning
+            .forwarding_history(req)
             .await
             .map(Response::into_inner)
     }
