@@ -1,6 +1,9 @@
 /// Module including all tonic-build generated code.
 /// Each sub-module represents one proto service.
 mod gen;
+use gen::lnrpc::{
+    ClosedChannelsRequest, ClosedChannelsResponse, ListChannelsRequest, ListChannelsResponse,
+};
 pub use gen::{invoicesrpc, lnrpc, routerrpc};
 
 use gen::invoicesrpc::{invoices_client::InvoicesClient, SubscribeSingleInvoiceRequest};
@@ -262,6 +265,26 @@ impl Lnd {
     ) -> Result<ForwardingHistoryResponse, Status> {
         self.lightning
             .forwarding_history(req)
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn list_channels(
+        &mut self,
+        req: ListChannelsRequest,
+    ) -> Result<ListChannelsResponse, Status> {
+        self.lightning
+            .list_channels(req)
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn closed_channels(
+        &mut self,
+        req: ClosedChannelsRequest,
+    ) -> Result<ClosedChannelsResponse, Status> {
+        self.lightning
+            .closed_channels(req)
             .await
             .map(Response::into_inner)
     }
