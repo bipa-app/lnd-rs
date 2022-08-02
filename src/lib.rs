@@ -1,3 +1,11 @@
+#![deny(
+    clippy::complexity,
+    clippy::correctness,
+    clippy::perf,
+    clippy::style,
+    clippy::suspicious
+)]
+
 /// Module including all tonic-build generated code.
 /// Each sub-module represents one proto service.
 mod gen;
@@ -115,7 +123,7 @@ impl Lnd {
 
     fn connector(certificate_bytes: &[u8]) -> Result<HttpsConnector<HttpConnector>, ErrorStack> {
         let mut connector = SslConnector::builder(SslMethod::tls())?;
-        let ca = X509::from_pem(&certificate_bytes)?;
+        let ca = X509::from_pem(certificate_bytes)?;
 
         connector.cert_store_mut().add_cert(ca)?;
         connector.set_alpn_protos(b"\x02h2")?;
