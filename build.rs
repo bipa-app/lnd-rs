@@ -1,7 +1,7 @@
-const BUILD_DIR: &'static str = "src/gen";
+const BUILD_DIR: &str = "src/gen";
 
-const PROTOS_NS: &'static str = "protos";
-const PROTOS: &[&'static str] = &[
+const PROTOS_NS: &str = "protos";
+const PROTOS: &[&str] = &[
     "protos/invoices.proto",
     "protos/lightning.proto",
     "protos/router.proto",
@@ -13,5 +13,5 @@ fn main() -> Result<(), std::io::Error> {
     tonic_build::configure()
         .build_server(false)
         .out_dir(BUILD_DIR)
-        .compile(&PROTOS, &[PROTOS_NS])
+        .compile(PROTOS, &[PROTOS_NS])
 }
