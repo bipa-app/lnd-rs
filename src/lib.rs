@@ -1,14 +1,26 @@
+#![deny(
+    clippy::complexity,
+    clippy::correctness,
+    clippy::perf,
+    clippy::style,
+    clippy::suspicious
+)]
+
 /// Module including all tonic-build generated code.
 /// Each sub-module represents one proto service.
 mod gen;
+use gen::lnrpc::{
+    ClosedChannelsRequest, ClosedChannelsResponse, ListChannelsRequest, ListChannelsResponse,
+};
 pub use gen::{invoicesrpc, lnrpc, routerrpc};
 
 use gen::invoicesrpc::{invoices_client::InvoicesClient, SubscribeSingleInvoiceRequest};
 use gen::lnrpc::{
     lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
-    ChannelBalanceResponse, GetInfoRequest, GetInfoResponse, Invoice, ListInvoiceRequest,
-    ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse, PayReq, PayReqString, Payment,
-    PaymentHash, SendRequest, SendResponse, WalletBalanceRequest, WalletBalanceResponse,
+    ChannelBalanceResponse, ForwardingHistoryRequest, ForwardingHistoryResponse, GetInfoRequest,
+    GetInfoResponse, Invoice, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
+    ListPaymentsResponse, PayReq, PayReqString, Payment, PaymentHash, SendRequest, SendResponse,
+    WalletBalanceRequest, WalletBalanceResponse,
 };
 use gen::routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest};
 
@@ -111,7 +123,7 @@ impl Lnd {
 
     fn connector(certificate_bytes: &[u8]) -> Result<HttpsConnector<HttpConnector>, ErrorStack> {
         let mut connector = SslConnector::builder(SslMethod::tls())?;
-        let ca = X509::from_pem(&certificate_bytes)?;
+        let ca = X509::from_pem(certificate_bytes)?;
 
         connector.cert_store_mut().add_cert(ca)?;
         connector.set_alpn_protos(b"\x02h2")?;
@@ -256,6 +268,35 @@ impl Lnd {
             .map(Response::into_inner)
     }
 
+    pub async fn forwarding_history(
+        &mut self,
+        req: ForwardingHistoryRequest,
+    ) -> Result<ForwardingHistoryResponse, Status> {
+        self.lightning
+            .forwarding_history(req)
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn list_channels(
+        &mut self,
+        req: ListChannelsRequest,
+    ) -> Result<ListChannelsResponse, Status> {
+        self.lightning
+            .list_channels(req)
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn closed_channels(
+        &mut self,
+        req: ClosedChannelsRequest,
+    ) -> Result<ClosedChannelsResponse, Status> {
+        self.lightning
+            .closed_channels(req)
+            .await
+            .map(Response::into_inner)
+    }
 }
 
 impl Lnd {
