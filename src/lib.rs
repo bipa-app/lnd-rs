@@ -278,25 +278,6 @@ impl Lnd {
             .map(Response::into_inner)
     }
 
-    pub async fn list_channels(
-        &mut self,
-        req: ListChannelsRequest,
-    ) -> Result<ListChannelsResponse, Status> {
-        self.lightning
-            .list_channels(req)
-            .await
-            .map(Response::into_inner)
-    }
-
-    pub async fn closed_channels(
-        &mut self,
-        req: ClosedChannelsRequest,
-    ) -> Result<ClosedChannelsResponse, Status> {
-        self.lightning
-            .closed_channels(req)
-            .await
-            .map(Response::into_inner)
-    }
 }
 
 impl Lnd {
