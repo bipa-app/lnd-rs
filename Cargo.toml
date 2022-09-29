@@ -9,11 +9,8 @@ license = "MIT"
 name = "lnd"
 
 [dependencies]
-tonic = { version = "0.8.0", features = ["transport", "codegen", "prost"], default-features = false }
+tonic = { version = "0.8.0", features = ["codegen", "prost", "tls", "transport"], default-features = false }
 prost = { version = "0.11.0", default-features = false }
-openssl = { version = "0.10", default-features = false }
-hyper = { version = "0.14", default-features = false }
-hyper-openssl = { version = "0.9", default-features = false }
 hex = { version = "0.4", features = ["std"], default-features = false }
 thiserror = { version = "1.0", default-features = false }
 
