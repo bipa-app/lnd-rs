@@ -9,36 +9,28 @@
 /// Module including all tonic-build generated code.
 /// Each sub-module represents one proto service.
 mod gen;
-use gen::lnrpc::{
-    ClosedChannelsRequest, ClosedChannelsResponse, ListChannelsRequest, ListChannelsResponse,
-};
 pub use gen::{invoicesrpc, lnrpc, routerrpc};
-
-use gen::invoicesrpc::{invoices_client::InvoicesClient, SubscribeSingleInvoiceRequest};
-use gen::lnrpc::{
-    lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
-    ChannelBalanceResponse, ForwardingHistoryRequest, ForwardingHistoryResponse, GetInfoRequest,
-    GetInfoResponse, Invoice, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
-    ListPaymentsResponse, PayReq, PayReqString, Payment, PaymentHash, SendRequest, SendResponse,
-    WalletBalanceRequest, WalletBalanceResponse,
-};
-use gen::routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest};
-
-use hyper::client::HttpConnector;
-use hyper_openssl::HttpsConnector;
-use openssl::{
-    error::ErrorStack,
-    ssl::{SslConnector, SslMethod},
-    x509::X509,
+use gen::{
+    invoicesrpc::{invoices_client::InvoicesClient, SubscribeSingleInvoiceRequest},
+    lnrpc::{
+        lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
+        ChannelBalanceResponse, ClosedChannelsRequest, ClosedChannelsResponse,
+        ForwardingHistoryRequest, ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse,
+        Invoice, ListChannelsRequest, ListChannelsResponse, ListInvoiceRequest,
+        ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse, PayReq, PayReqString,
+        Payment, PaymentHash, SendRequest, SendResponse, WalletBalanceRequest,
+        WalletBalanceResponse,
+    },
+    routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest},
 };
 use std::convert::TryInto;
-use tonic::Streaming;
 use tonic::{
     codegen::{InterceptedService, StdError},
     metadata::{errors::InvalidMetadataValue, Ascii, MetadataValue},
     service::Interceptor,
+    transport::{Certificate, ClientTlsConfig},
     transport::{Channel, Endpoint},
-    Response, Status,
+    Response, Status, Streaming,
 };
 
 #[derive(Debug, Clone)]
@@ -50,8 +42,6 @@ pub struct Lnd {
 
 #[derive(Debug, thiserror::Error)]
 pub enum LndConnectError {
-    #[error("Connector creation failed: #{0}")]
-    Connector(ErrorStack),
     #[error("Interceptor creation failed: #{0}")]
     Interceptor(InvalidMetadataValue),
     #[error("Transport connection failed: #{0}")]
@@ -59,20 +49,16 @@ pub enum LndConnectError {
 }
 
 impl Lnd {
-    pub async fn connect<D>(
-        destination: D,
-        certificate_bytes: &[u8],
-    ) -> Result<Self, LndConnectError>
+    pub async fn connect<D>(destination: D, cert_pem_bytes: &[u8]) -> Result<Self, LndConnectError>
     where
         D: TryInto<Endpoint>,
         D::Error: Into<StdError>,
     {
-        let https_connector =
-            Lnd::connector(certificate_bytes).map_err(LndConnectError::Connector)?;
-
+        let cert = Certificate::from_pem(cert_pem_bytes);
         let transport = tonic::transport::Endpoint::new(destination)
+            .and_then(|d| d.tls_config(ClientTlsConfig::new().ca_certificate(cert)))
             .map_err(LndConnectError::Transport)?
-            .connect_with_connector(https_connector)
+            .connect()
             .await
             .map_err(LndConnectError::Transport)?;
 
@@ -81,17 +67,16 @@ impl Lnd {
 
     pub async fn connect_lazy<D>(
         destination: D,
-        certificate_bytes: &[u8],
+        cert_pem_bytes: &[u8],
     ) -> Result<Self, LndConnectError>
     where
         D: TryInto<Endpoint>,
         D::Error: Into<StdError>,
     {
-        let https_connector =
-            Lnd::connector(certificate_bytes).map_err(LndConnectError::Connector)?;
-
+        let cert = Certificate::from_pem(cert_pem_bytes);
         let transport = tonic::transport::Endpoint::new(destination)
-            .map(move |d| d.connect_with_connector_lazy(https_connector))
+            .and_then(|d| d.tls_config(ClientTlsConfig::new().ca_certificate(cert)))
+            .map(move |d| d.connect_lazy())
             .map_err(LndConnectError::Transport)?;
 
         Ok(Lnd::build(transport, LndInterceptor::noop()))
@@ -99,39 +84,25 @@ impl Lnd {
 
     pub async fn connect_with_macaroon<D>(
         destination: D,
-        certificate_bytes: &[u8],
+        cert_pem_bytes: &[u8],
         macaroon_bytes: &[u8],
     ) -> Result<Self, LndConnectError>
     where
         D: TryInto<Endpoint>,
         D::Error: Into<StdError>,
     {
-        let https_connector =
-            Lnd::connector(certificate_bytes).map_err(LndConnectError::Connector)?;
-
         let interceptor =
             LndInterceptor::macaroon(macaroon_bytes).map_err(LndConnectError::Interceptor)?;
 
+        let cert = Certificate::from_pem(cert_pem_bytes);
         let transport = tonic::transport::Endpoint::new(destination)
+            .and_then(|d| d.tls_config(ClientTlsConfig::new().ca_certificate(cert)))
             .map_err(LndConnectError::Transport)?
-            .connect_with_connector(https_connector)
+            .connect()
             .await
             .map_err(LndConnectError::Transport)?;
 
         Ok(Lnd::build(transport, interceptor))
-    }
-
-    fn connector(certificate_bytes: &[u8]) -> Result<HttpsConnector<HttpConnector>, ErrorStack> {
-        let mut connector = SslConnector::builder(SslMethod::tls())?;
-        let ca = X509::from_pem(certificate_bytes)?;
-
-        connector.cert_store_mut().add_cert(ca)?;
-        connector.set_alpn_protos(b"\x02h2")?;
-
-        let mut http = HttpConnector::new();
-        http.enforce_http(false);
-
-        HttpsConnector::with_connector(http, connector)
     }
 
     fn build(channel: Channel, interceptor: LndInterceptor) -> Self {
