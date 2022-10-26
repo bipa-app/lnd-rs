@@ -35,9 +35,9 @@ use tonic::{
 
 #[derive(Debug, Clone)]
 pub struct Lnd {
-    lightning: LightningClient<InterceptedService<Channel, LndInterceptor>>,
-    invoices: InvoicesClient<InterceptedService<Channel, LndInterceptor>>,
-    router: RouterClient<InterceptedService<Channel, LndInterceptor>>,
+    pub lightning: LightningClient<InterceptedService<Channel, LndInterceptor>>,
+    pub invoices: InvoicesClient<InterceptedService<Channel, LndInterceptor>>,
+    pub router: RouterClient<InterceptedService<Channel, LndInterceptor>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -119,7 +119,7 @@ impl Lnd {
 }
 
 #[derive(Debug, Clone)]
-struct LndInterceptor {
+pub struct LndInterceptor {
     macaroon: Option<MetadataValue<Ascii>>,
 }
 
@@ -145,6 +145,7 @@ impl Interceptor for LndInterceptor {
 }
 
 impl Lnd {
+
     pub async fn get_info(&mut self) -> Result<GetInfoResponse, Status> {
         self.lightning
             .get_info(GetInfoRequest {})
@@ -248,25 +249,6 @@ impl Lnd {
             .map(Response::into_inner)
     }
 
-    pub async fn list_channels(
-        &mut self,
-        req: ListChannelsRequest,
-    ) -> Result<ListChannelsResponse, Status> {
-        self.lightning
-            .list_channels(req)
-            .await
-            .map(Response::into_inner)
-    }
-
-    pub async fn closed_channels(
-        &mut self,
-        req: ClosedChannelsRequest,
-    ) -> Result<ClosedChannelsResponse, Status> {
-        self.lightning
-            .closed_channels(req)
-            .await
-            .map(Response::into_inner)
-    }
 }
 
 impl Lnd {
