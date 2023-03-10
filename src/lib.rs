@@ -166,13 +166,6 @@ impl Lnd {
             .map(Response::into_inner)
     }
 
-    pub async fn decode_pay_req(&mut self, pay_req: String) -> Result<PayReq, Status> {
-        self.lightning
-            .decode_pay_req(PayReqString { pay_req })
-            .await
-            .map(Response::into_inner)
-    }
-
     pub async fn list_payments(
         &mut self,
         include_incomplete: bool,
@@ -295,13 +288,37 @@ impl Lnd {
     }
 }
 
-impl Lnd {
-    pub async fn subscribe_single_invoice(
+#[async_trait::async_trait]
+pub trait SubscribeSingleInvoice {
+    async fn subscribe_single_invoice(
+        &mut self,
+        r_hash: Vec<u8>,
+    ) -> Result<Streaming<Invoice>, Status>;
+}
+
+#[async_trait::async_trait]
+impl SubscribeSingleInvoice for Lnd {
+    async fn subscribe_single_invoice(
         &mut self,
         r_hash: Vec<u8>,
     ) -> Result<Streaming<Invoice>, Status> {
         self.invoices
             .subscribe_single_invoice(SubscribeSingleInvoiceRequest { r_hash })
+            .await
+            .map(Response::into_inner)
+    }
+}
+
+#[async_trait::async_trait]
+pub trait DecodePayReq {
+    async fn decode_pay_req(&mut self, pay_req: String) -> Result<PayReq, Status>;
+}
+
+#[async_trait::async_trait]
+impl DecodePayReq for Lnd {
+    async fn decode_pay_req(&mut self, pay_req: String) -> Result<PayReq, Status> {
+        self.lightning
+            .decode_pay_req(PayReqString { pay_req })
             .await
             .map(Response::into_inner)
     }
