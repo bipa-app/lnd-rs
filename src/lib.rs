@@ -288,8 +288,17 @@ impl Lnd {
     }
 }
 
-impl Lnd {
-    pub async fn subscribe_single_invoice(
+#[async_trait::async_trait]
+pub trait SubscribeSingleInvoice {
+    async fn subscribe_single_invoice(
+        &mut self,
+        r_hash: Vec<u8>,
+    ) -> Result<Streaming<Invoice>, Status>;
+}
+
+#[async_trait::async_trait]
+impl SubscribeSingleInvoice for Lnd {
+    async fn subscribe_single_invoice(
         &mut self,
         r_hash: Vec<u8>,
     ) -> Result<Streaming<Invoice>, Status> {
