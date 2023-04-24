@@ -17,9 +17,9 @@ use gen::{
         ChannelBalanceResponse, ClosedChannelsRequest, ClosedChannelsResponse,
         ForwardingHistoryRequest, ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse,
         Invoice, ListChannelsRequest, ListChannelsResponse, ListInvoiceRequest,
-        ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse, PayReq, PayReqString,
-        Payment, PaymentHash, SendRequest, SendResponse, WalletBalanceRequest,
-        WalletBalanceResponse,
+        ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse, NewAddressRequest,
+        NewAddressResponse, PayReq, PayReqString, Payment, PaymentHash, SendRequest, SendResponse,
+        WalletBalanceRequest, WalletBalanceResponse,
     },
     routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest},
 };
@@ -257,6 +257,16 @@ impl Lnd {
     ) -> Result<ClosedChannelsResponse, Status> {
         self.lightning
             .closed_channels(req)
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn new_address(
+        &mut self,
+        req: NewAddressRequest,
+    ) -> Result<NewAddressResponse, Status> {
+        self.lightning
+            .new_address(req)
             .await
             .map(Response::into_inner)
     }
