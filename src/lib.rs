@@ -18,8 +18,9 @@ use gen::{
         ForwardingHistoryRequest, ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse,
         Invoice, ListChannelsRequest, ListChannelsResponse, ListInvoiceRequest,
         ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse, NewAddressRequest,
-        NewAddressResponse, PayReq, PayReqString, Payment, PaymentHash, SendRequest, SendResponse,
-        WalletBalanceRequest, WalletBalanceResponse,
+        NewAddressResponse, PayReq, PayReqString, Payment, PaymentHash, PendingChannelsRequest,
+        PendingChannelsResponse, SendRequest, SendResponse, WalletBalanceRequest,
+        WalletBalanceResponse,
     },
     routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest},
 };
@@ -267,6 +268,13 @@ impl Lnd {
     ) -> Result<NewAddressResponse, Status> {
         self.lightning
             .new_address(req)
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn pending_channels(&mut self) -> Result<PendingChannelsResponse, Status> {
+        self.lightning
+            .pending_channels(PendingChannelsRequest {})
             .await
             .map(Response::into_inner)
     }
