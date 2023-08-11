@@ -13,14 +13,14 @@ pub use gen::{invoicesrpc, lnrpc, routerrpc};
 use gen::{
     invoicesrpc::{invoices_client::InvoicesClient, SubscribeSingleInvoiceRequest},
     lnrpc::{
-        lightning_client::LightningClient, AddInvoiceResponse, ChannelBalanceRequest,
-        ChannelBalanceResponse, ClosedChannelsRequest, ClosedChannelsResponse,
-        ForwardingHistoryRequest, ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse,
-        Invoice, ListChannelsRequest, ListChannelsResponse, ListInvoiceRequest,
-        ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse, NewAddressRequest,
-        NewAddressResponse, PayReq, PayReqString, Payment, PaymentHash, PendingChannelsRequest,
-        PendingChannelsResponse, SendRequest, SendResponse, WalletBalanceRequest,
-        WalletBalanceResponse,
+        lightning_client::LightningClient, AddInvoiceResponse, ChannelAcceptRequest,
+        ChannelAcceptResponse, ChannelBalanceRequest, ChannelBalanceResponse,
+        ClosedChannelsRequest, ClosedChannelsResponse, ForwardingHistoryRequest,
+        ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse, Invoice, ListChannelsRequest,
+        ListChannelsResponse, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
+        ListPaymentsResponse, NewAddressRequest, NewAddressResponse, PayReq, PayReqString, Payment,
+        PaymentHash, PendingChannelsRequest, PendingChannelsResponse, SendRequest, SendResponse,
+        WalletBalanceRequest, WalletBalanceResponse,
     },
     routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest},
 };
@@ -275,6 +275,16 @@ impl Lnd {
     pub async fn pending_channels(&mut self) -> Result<PendingChannelsResponse, Status> {
         self.lightning
             .pending_channels(PendingChannelsRequest {})
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn channel_acceptor(
+        &mut self,
+        req: impl tonic::IntoStreamingRequest<Message = ChannelAcceptResponse>,
+    ) -> Result<Streaming<ChannelAcceptRequest>, Status> {
+        self.lightning
+            .channel_acceptor(req)
             .await
             .map(Response::into_inner)
     }
