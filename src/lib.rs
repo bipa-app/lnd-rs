@@ -33,6 +33,7 @@ use tonic::{
     transport::{Channel, Endpoint},
     Response, Status, Streaming,
 };
+use tracing::Instrument;
 
 #[derive(Debug, Clone)]
 pub struct Lnd {
@@ -149,6 +150,7 @@ impl Lnd {
     pub async fn get_info(&mut self) -> Result<GetInfoResponse, Status> {
         self.lightning
             .get_info(GetInfoRequest {})
+            .instrument(span!("lnrpc". "Lightning" / "GetInfo"))
             .await
             .map(Response::into_inner)
     }
@@ -156,6 +158,7 @@ impl Lnd {
     pub async fn add_invoice(&mut self, invoice: Invoice) -> Result<AddInvoiceResponse, Status> {
         self.lightning
             .add_invoice(invoice)
+            .instrument(span!("lnrpc". "Lightning" / "AddInvoice"))
             .await
             .map(Response::into_inner)
     }
@@ -163,6 +166,7 @@ impl Lnd {
     pub async fn channel_balance(&mut self) -> Result<ChannelBalanceResponse, Status> {
         self.lightning
             .channel_balance(ChannelBalanceRequest {})
+            .instrument(span!("lnrpc". "Lightning" / "ChannelBalance"))
             .await
             .map(Response::into_inner)
     }
@@ -181,6 +185,7 @@ impl Lnd {
                 max_payments,
                 reversed,
             })
+            .instrument(span!("lnrpc". "Lightning" / "ListPayments"))
             .await
             .map(Response::into_inner)
     }
@@ -199,6 +204,7 @@ impl Lnd {
                 num_max_invoices,
                 reversed,
             })
+            .instrument(span!("lnrpc". "Lightning" / "ListInvoices"))
             .await
             .map(Response::into_inner)
     }
@@ -211,6 +217,7 @@ impl Lnd {
         };
         self.lightning
             .lookup_invoice(payment_hash)
+            .instrument(span!("lnrpc". "Lightning" / "LookupInvoice"))
             .await
             .map(Response::into_inner)
     }
@@ -221,6 +228,7 @@ impl Lnd {
     ) -> Result<SendResponse, Status> {
         self.lightning
             .send_payment_sync(send_request)
+            .instrument(span!("lnrpc". "Lightning" / "SendPaymentSync"))
             .await
             .map(Response::into_inner)
     }
@@ -228,6 +236,7 @@ impl Lnd {
     pub async fn wallet_balance(&mut self) -> Result<WalletBalanceResponse, Status> {
         self.lightning
             .wallet_balance(WalletBalanceRequest {})
+            .instrument(span!("lnrpc". "Lightning" / "WalletBalance"))
             .await
             .map(Response::into_inner)
     }
@@ -238,6 +247,7 @@ impl Lnd {
     ) -> Result<ForwardingHistoryResponse, Status> {
         self.lightning
             .forwarding_history(req)
+            .instrument(span!("lnrpc". "Lightning" / "ForwardingHistory"))
             .await
             .map(Response::into_inner)
     }
@@ -248,6 +258,7 @@ impl Lnd {
     ) -> Result<ListChannelsResponse, Status> {
         self.lightning
             .list_channels(req)
+            .instrument(span!("lnrpc". "Lightning" / "ListChannels"))
             .await
             .map(Response::into_inner)
     }
@@ -258,6 +269,7 @@ impl Lnd {
     ) -> Result<ClosedChannelsResponse, Status> {
         self.lightning
             .closed_channels(req)
+            .instrument(span!("lnrpc". "Lightning" / "ClosedChannels"))
             .await
             .map(Response::into_inner)
     }
@@ -268,6 +280,7 @@ impl Lnd {
     ) -> Result<NewAddressResponse, Status> {
         self.lightning
             .new_address(req)
+            .instrument(span!("lnrpc". "Lightning" / "NewAddress"))
             .await
             .map(Response::into_inner)
     }
@@ -275,6 +288,7 @@ impl Lnd {
     pub async fn pending_channels(&mut self) -> Result<PendingChannelsResponse, Status> {
         self.lightning
             .pending_channels(PendingChannelsRequest {})
+            .instrument(span!("lnrpc". "Lightning" / "PendingChannels"))
             .await
             .map(Response::into_inner)
     }
@@ -285,6 +299,7 @@ impl Lnd {
     ) -> Result<Streaming<ChannelAcceptRequest>, Status> {
         self.lightning
             .channel_acceptor(req)
+            .instrument(span!("lnrpc". "Lightning" / "ChannelAcceptor"))
             .await
             .map(Response::into_inner)
     }
@@ -297,6 +312,7 @@ impl Lnd {
     ) -> Result<Streaming<Payment>, Status> {
         self.router
             .send_payment_v2(req)
+            .instrument(span!("lnrpc". "Router" / "SendPaymentV2"))
             .await
             .map(Response::into_inner)
     }
@@ -311,6 +327,7 @@ impl Lnd {
                 no_inflight_updates,
                 payment_hash,
             })
+            .instrument(span!("lnrpc". "Router" / "TrackPaymentV2"))
             .await
             .map(Response::into_inner)
     }
@@ -332,6 +349,7 @@ impl SubscribeSingleInvoice for Lnd {
     ) -> Result<Streaming<Invoice>, Status> {
         self.invoices
             .subscribe_single_invoice(SubscribeSingleInvoiceRequest { r_hash })
+            .instrument(span!("lnrpc". "Invoices" / "SubscribeSingleInvoice"))
             .await
             .map(Response::into_inner)
     }
@@ -347,7 +365,23 @@ impl DecodePayReq for Lnd {
     async fn decode_pay_req(&mut self, pay_req: String) -> Result<PayReq, Status> {
         self.lightning
             .decode_pay_req(PayReqString { pay_req })
+            .instrument(span!("lnrpc". "Lightning" / "DecodePayReq"))
             .await
             .map(Response::into_inner)
     }
+}
+
+#[macro_export]
+macro_rules! span {
+    ($package:literal. $service:literal / $method:literal) => {
+        tracing::info_span!(
+            "lnd",
+            service.name = "lnd",
+            otel.name = concat!($package, ".", $service, "/", $method),
+            otel.kind = "client",
+            rpc.system = "grpc",
+            rpc.service = $service,
+            rpc.method = $method,
+        )
+    };
 }
