@@ -14,6 +14,7 @@ hex = { version = "0.4", features = ["std"], default-features = false }
 prost = { version = "0.11.0", features = ["prost-derive"], default-features = false }
 thiserror = { version = "1.0", default-features = false }
 tonic = { version = "0.9.0", features = ["codegen", "prost", "tls", "transport"], default-features = false }
+tracing = { version = "0.1.25", default-features = false }
 
 [build-dependencies]
 tonic-build = "0.9.0"
