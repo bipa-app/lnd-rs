@@ -380,7 +380,7 @@ macro_rules! span {
             otel.name = concat!($package, ".", $service, "/", $method),
             otel.kind = "client",
             rpc.system = "grpc",
-            rpc.service = $service,
+            rpc.service = concat!($package, ".", $service),
             rpc.method = $method,
         )
     };
