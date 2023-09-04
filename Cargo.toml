@@ -9,12 +9,12 @@ license = "MIT"
 name = "lnd"
 
 [dependencies]
-async-trait = { version = "0.1.58", default-features = false }
-hex = { version = "0.4", features = ["std"], default-features = false }
-prost = { version = "0.11.0", features = ["prost-derive"], default-features = false }
-thiserror = { version = "1.0", default-features = false }
-tonic = { version = "0.9.0", features = ["codegen", "prost", "tls", "transport"], default-features = false }
-tracing = { version = "0.1.25", default-features = false }
+async-trait = { version = "0.1.0", default-features = false }
+hex = { version = "0.4.0", features = ["std"], default-features = false }
+prost = { version = "0.12.0", features = ["prost-derive"], default-features = false }
+thiserror = { version = "1.0.0", default-features = false }
+tonic = { version = "0.10.0", features = ["codegen", "prost", "tls", "transport"], default-features = false }
+tracing = { version = "0.1.0", default-features = false }
 
 [build-dependencies]
-tonic-build = "0.9.0"
+tonic-build = "0.10.0"
