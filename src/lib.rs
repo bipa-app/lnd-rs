@@ -11,7 +11,11 @@
 mod gen;
 pub use gen::{invoicesrpc, lnrpc, routerrpc};
 use gen::{
-    invoicesrpc::{invoices_client::InvoicesClient, SubscribeSingleInvoiceRequest},
+    invoicesrpc::{
+        invoices_client::InvoicesClient, AddHoldInvoiceRequest, AddHoldInvoiceResp,
+        CancelInvoiceMsg, CancelInvoiceResp, SettleInvoiceMsg, SettleInvoiceResp,
+        SubscribeSingleInvoiceRequest,
+    },
     lnrpc::{
         lightning_client::LightningClient, AddInvoiceResponse, ChannelAcceptRequest,
         ChannelAcceptResponse, ChannelBalanceRequest, ChannelBalanceResponse,
@@ -159,6 +163,41 @@ impl Lnd {
         self.lightning
             .add_invoice(invoice)
             .instrument(span!("lnrpc". "Lightning" / "AddInvoice"))
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn add_hold_invoice(
+        &mut self,
+        hash: Vec<u8>,
+        value: i64,
+    ) -> Result<AddHoldInvoiceResp, Status> {
+        self.invoices
+            .add_hold_invoice(AddHoldInvoiceRequest {
+                hash,
+                value,
+                ..AddHoldInvoiceRequest::default()
+            })
+            .instrument(span!("lnrpc". "Invoices" / "AddHoldInvoice"))
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn cancel_invoice(
+        &mut self,
+        payment_hash: Vec<u8>,
+    ) -> Result<CancelInvoiceResp, Status> {
+        self.invoices
+            .cancel_invoice(CancelInvoiceMsg { payment_hash })
+            .instrument(span!("lnrpc". "Invoices" / "CancelInvoice"))
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn settle_invoice(&mut self, preimage: Vec<u8>) -> Result<SettleInvoiceResp, Status> {
+        self.invoices
+            .settle_invoice(SettleInvoiceMsg { preimage })
+            .instrument(span!("lnrpc". "Invoices" / "SettleInvoice"))
             .await
             .map(Response::into_inner)
     }
