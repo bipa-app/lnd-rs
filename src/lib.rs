@@ -223,6 +223,7 @@ impl Lnd {
                 index_offset,
                 max_payments,
                 reversed,
+                ..ListPaymentsRequest::default()
             })
             .instrument(span!("lnrpc". "Lightning" / "ListPayments"))
             .await
@@ -242,6 +243,7 @@ impl Lnd {
                 index_offset,
                 num_max_invoices,
                 reversed,
+                ..ListInvoiceRequest::default()
             })
             .instrument(span!("lnrpc". "Lightning" / "ListInvoices"))
             .await
@@ -274,7 +276,7 @@ impl Lnd {
 
     pub async fn wallet_balance(&mut self) -> Result<WalletBalanceResponse, Status> {
         self.lightning
-            .wallet_balance(WalletBalanceRequest {})
+            .wallet_balance(WalletBalanceRequest::default())
             .instrument(span!("lnrpc". "Lightning" / "WalletBalance"))
             .await
             .map(Response::into_inner)
