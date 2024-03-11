@@ -18,8 +18,8 @@ use gen::{
     },
     lnrpc::{
         lightning_client::LightningClient, AddInvoiceResponse, ChannelAcceptRequest,
-        ChannelAcceptResponse, ChannelBalanceRequest, ChannelBalanceResponse,
-        ClosedChannelsRequest, ClosedChannelsResponse, ForwardingHistoryRequest,
+        ChannelAcceptResponse, ChannelBalanceRequest, ChannelBalanceResponse, CloseChannelRequest,
+        CloseStatusUpdate, ClosedChannelsRequest, ClosedChannelsResponse, ForwardingHistoryRequest,
         ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse, Invoice, ListChannelsRequest,
         ListChannelsResponse, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
         ListPaymentsResponse, NewAddressRequest, NewAddressResponse, PayReq, PayReqString, Payment,
@@ -341,6 +341,17 @@ impl Lnd {
         self.lightning
             .channel_acceptor(req)
             .instrument(span!("lnrpc". "Lightning" / "ChannelAcceptor"))
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn close_channel(
+        &mut self,
+        req: CloseChannelRequest,
+    ) -> Result<Streaming<CloseStatusUpdate>, Status> {
+        self.lightning
+            .close_channel(req)
+            .instrument(span!("lnrpc". "Lighting" / "CloseChannel"))
             .await
             .map(Response::into_inner)
     }
