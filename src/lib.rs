@@ -23,8 +23,8 @@ use gen::{
         ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse, Invoice, ListChannelsRequest,
         ListChannelsResponse, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
         ListPaymentsResponse, NewAddressRequest, NewAddressResponse, PayReq, PayReqString, Payment,
-        PaymentHash, PendingChannelsRequest, PendingChannelsResponse, SendRequest, SendResponse,
-        WalletBalanceRequest, WalletBalanceResponse,
+        PaymentHash, PendingChannelsRequest, PendingChannelsResponse, SendCoinsRequest,
+        SendCoinsResponse, SendRequest, SendResponse, WalletBalanceRequest, WalletBalanceResponse,
     },
     routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest},
 };
@@ -352,6 +352,14 @@ impl Lnd {
         self.lightning
             .close_channel(req)
             .instrument(span!("lnrpc". "Lighting" / "CloseChannel"))
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn send_coins(&mut self, req: SendCoinsRequest) -> Result<SendCoinsResponse, Status> {
+        self.lightning
+            .send_coins(req)
+            .instrument(span!("lnrpc". "Lightning" / "SendCoins"))
             .await
             .map(Response::into_inner)
     }
