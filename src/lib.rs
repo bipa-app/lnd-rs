@@ -12,9 +12,9 @@ mod gen;
 pub use gen::{invoicesrpc, lnrpc, routerrpc};
 use gen::{
     invoicesrpc::{
-        invoices_client::InvoicesClient, AddHoldInvoiceRequest, AddHoldInvoiceResp,
-        CancelInvoiceMsg, CancelInvoiceResp, SettleInvoiceMsg, SettleInvoiceResp,
-        SubscribeSingleInvoiceRequest,
+        invoices_client::InvoicesClient, lookup_invoice_msg::InvoiceRef, AddHoldInvoiceRequest,
+        AddHoldInvoiceResp, CancelInvoiceMsg, CancelInvoiceResp, LookupInvoiceMsg, LookupModifier,
+        SettleInvoiceMsg, SettleInvoiceResp, SubscribeSingleInvoiceRequest,
     },
     lnrpc::{
         lightning_client::LightningClient, AddInvoiceResponse, ChannelAcceptRequest,
@@ -23,8 +23,8 @@ use gen::{
         ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse, Invoice, ListChannelsRequest,
         ListChannelsResponse, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
         ListPaymentsResponse, NewAddressRequest, NewAddressResponse, PayReq, PayReqString, Payment,
-        PaymentHash, PendingChannelsRequest, PendingChannelsResponse, SendCoinsRequest,
-        SendCoinsResponse, SendRequest, SendResponse, WalletBalanceRequest, WalletBalanceResponse,
+        PendingChannelsRequest, PendingChannelsResponse, SendCoinsRequest, SendCoinsResponse,
+        SendRequest, SendResponse, WalletBalanceRequest, WalletBalanceResponse,
     },
     routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest},
 };
@@ -250,19 +250,6 @@ impl Lnd {
             .map(Response::into_inner)
     }
 
-    pub async fn lookup_invoice(&mut self, r_hash: Vec<u8>) -> Result<Invoice, Status> {
-        #[allow(deprecated)]
-        let payment_hash = PaymentHash {
-            r_hash_str: String::from(""),
-            r_hash,
-        };
-        self.lightning
-            .lookup_invoice(payment_hash)
-            .instrument(span!("lnrpc". "Lightning" / "LookupInvoice"))
-            .await
-            .map(Response::into_inner)
-    }
-
     pub async fn send_payment_sync(
         &mut self,
         send_request: SendRequest,
@@ -388,6 +375,25 @@ impl Lnd {
                 payment_hash,
             })
             .instrument(span!("lnrpc". "Router" / "TrackPaymentV2"))
+            .await
+            .map(Response::into_inner)
+    }
+}
+
+#[async_trait::async_trait]
+pub trait LookupInvoice {
+    async fn lookup_invoice(&mut self, payment_hash: Vec<u8>) -> Result<Invoice, Status>;
+}
+
+#[async_trait::async_trait]
+impl LookupInvoice for Lnd {
+    async fn lookup_invoice(&mut self, payment_hash: Vec<u8>) -> Result<Invoice, Status> {
+        self.invoices
+            .lookup_invoice_v2(LookupInvoiceMsg {
+                lookup_modifier: LookupModifier::Default as i32,
+                invoice_ref: Some(InvoiceRef::PaymentHash(payment_hash)),
+            })
+            .instrument(span!("lnrpc". "Invoices" / "LookupInvoiceV2"))
             .await
             .map(Response::into_inner)
     }
