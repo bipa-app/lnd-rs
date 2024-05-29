@@ -111,6 +111,27 @@ impl Lnd {
         Ok(Lnd::build(transport, interceptor))
     }
 
+    pub async fn connect_with_macaroon_lazy<D>(
+        destination: D,
+        cert_pem_bytes: &[u8],
+        macaroon_bytes: &[u8],
+    ) -> Result<Self, LndConnectError>
+    where
+        D: TryInto<Endpoint>,
+        D::Error: Into<StdError>,
+    {
+        let interceptor =
+            LndInterceptor::macaroon(macaroon_bytes).map_err(LndConnectError::Interceptor)?;
+
+        let cert = Certificate::from_pem(cert_pem_bytes);
+        let transport = tonic::transport::Endpoint::new(destination)
+            .and_then(|d| d.tls_config(ClientTlsConfig::new().ca_certificate(cert)))
+            .map(move |d| d.connect_lazy())
+            .map_err(LndConnectError::Transport)?;
+
+        Ok(Lnd::build(transport, interceptor))
+    }
+
     fn build(channel: Channel, interceptor: LndInterceptor) -> Self {
         let lightning = LightningClient::with_interceptor(channel.clone(), interceptor.clone());
         let invoices = InvoicesClient::with_interceptor(channel.clone(), interceptor.clone());
