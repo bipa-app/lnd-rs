@@ -458,12 +458,13 @@ impl Lnd {
     }
 }
 
-#[async_trait::async_trait]
 pub trait LookupInvoice {
-    async fn lookup_invoice(&mut self, payment_hash: Vec<u8>) -> Result<Invoice, Status>;
+    fn lookup_invoice(
+        &mut self,
+        payment_hash: Vec<u8>,
+    ) -> impl std::future::Future<Output = Result<Invoice, Status>> + Send;
 }
 
-#[async_trait::async_trait]
 impl LookupInvoice for Lnd {
     async fn lookup_invoice(&mut self, payment_hash: Vec<u8>) -> Result<Invoice, Status> {
         span!(self.tracer => "lnrpc". "Invoices" / "LookupInvoiceV2");
@@ -479,15 +480,13 @@ impl LookupInvoice for Lnd {
     }
 }
 
-#[async_trait::async_trait]
 pub trait SubscribeSingleInvoice {
-    async fn subscribe_single_invoice(
+    fn subscribe_single_invoice(
         &mut self,
         r_hash: Vec<u8>,
-    ) -> Result<Streaming<Invoice>, Status>;
+    ) -> impl std::future::Future<Output = Result<Streaming<Invoice>, Status>> + Send;
 }
 
-#[async_trait::async_trait]
 impl SubscribeSingleInvoice for Lnd {
     async fn subscribe_single_invoice(
         &mut self,
@@ -503,12 +502,13 @@ impl SubscribeSingleInvoice for Lnd {
     }
 }
 
-#[async_trait::async_trait]
 pub trait DecodePayReq {
-    async fn decode_pay_req(&mut self, pay_req: String) -> Result<PayReq, Status>;
+    fn decode_pay_req(
+        &mut self,
+        pay_req: String,
+    ) -> impl std::future::Future<Output = Result<PayReq, Status>> + Send;
 }
 
-#[async_trait::async_trait]
 impl DecodePayReq for Lnd {
     async fn decode_pay_req(&mut self, pay_req: String) -> Result<PayReq, Status> {
         span!(self.tracer => "lnrpc". "Lightning" / "DecodePayReq");
