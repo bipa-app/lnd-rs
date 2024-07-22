@@ -28,7 +28,7 @@ use gen::{
     },
     routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest},
 };
-use opentelemetry::trace::FutureExt;
+use opentelemetry::trace::{FutureExt, TraceContextExt};
 use std::convert::TryInto;
 use tonic::{
     codegen::{InterceptedService, StdError},
@@ -190,21 +190,21 @@ impl Interceptor for LndInterceptor {
 
 impl Lnd {
     pub async fn get_info(&mut self) -> Result<GetInfoResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "GetInfo");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "GetInfo");
 
         self.lightning
             .get_info(GetInfoRequest {})
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
 
     pub async fn add_invoice(&mut self, invoice: Invoice) -> Result<AddInvoiceResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "AddInvoice");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "AddInvoice");
 
         self.lightning
             .add_invoice(invoice)
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -214,7 +214,7 @@ impl Lnd {
         hash: Vec<u8>,
         value: i64,
     ) -> Result<AddHoldInvoiceResp, Status> {
-        span!(self.tracer => "lnrpc". "Invoices" / "AddHoldInvoice");
+        let span = span!(self.tracer => "lnrpc". "Invoices" / "AddHoldInvoice");
 
         self.invoices
             .add_hold_invoice(AddHoldInvoiceRequest {
@@ -222,7 +222,7 @@ impl Lnd {
                 value,
                 ..AddHoldInvoiceRequest::default()
             })
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -231,31 +231,31 @@ impl Lnd {
         &mut self,
         payment_hash: Vec<u8>,
     ) -> Result<CancelInvoiceResp, Status> {
-        span!(self.tracer => "lnrpc". "Invoices" / "CancelInvoice");
+        let span = span!(self.tracer => "lnrpc". "Invoices" / "CancelInvoice");
 
         self.invoices
             .cancel_invoice(CancelInvoiceMsg { payment_hash })
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
 
     pub async fn settle_invoice(&mut self, preimage: Vec<u8>) -> Result<SettleInvoiceResp, Status> {
-        span!(self.tracer => "lnrpc". "Invoices" / "SettleInvoice");
+        let span = span!(self.tracer => "lnrpc". "Invoices" / "SettleInvoice");
 
         self.invoices
             .settle_invoice(SettleInvoiceMsg { preimage })
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
 
     pub async fn channel_balance(&mut self) -> Result<ChannelBalanceResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "ChannelBalance");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "ChannelBalance");
 
         self.lightning
             .channel_balance(ChannelBalanceRequest {})
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -267,7 +267,7 @@ impl Lnd {
         max_payments: u64,
         reversed: bool,
     ) -> Result<ListPaymentsResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "ListPayments");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "ListPayments");
 
         self.lightning
             .list_payments(ListPaymentsRequest {
@@ -277,7 +277,7 @@ impl Lnd {
                 reversed,
                 ..ListPaymentsRequest::default()
             })
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -289,7 +289,7 @@ impl Lnd {
         num_max_invoices: u64,
         reversed: bool,
     ) -> Result<ListInvoiceResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "ListInvoices");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "ListInvoices");
 
         self.lightning
             .list_invoices(ListInvoiceRequest {
@@ -299,7 +299,7 @@ impl Lnd {
                 reversed,
                 ..ListInvoiceRequest::default()
             })
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -308,21 +308,21 @@ impl Lnd {
         &mut self,
         send_request: SendRequest,
     ) -> Result<SendResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "SendPaymentSync");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "SendPaymentSync");
 
         self.lightning
             .send_payment_sync(send_request)
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
 
     pub async fn wallet_balance(&mut self) -> Result<WalletBalanceResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "WalletBalance");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "WalletBalance");
 
         self.lightning
             .wallet_balance(WalletBalanceRequest::default())
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -331,11 +331,11 @@ impl Lnd {
         &mut self,
         req: ForwardingHistoryRequest,
     ) -> Result<ForwardingHistoryResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "ForwardingHistory");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "ForwardingHistory");
 
         self.lightning
             .forwarding_history(req)
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -344,11 +344,11 @@ impl Lnd {
         &mut self,
         req: ListChannelsRequest,
     ) -> Result<ListChannelsResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "ListChannels");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "ListChannels");
 
         self.lightning
             .list_channels(req)
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -357,11 +357,11 @@ impl Lnd {
         &mut self,
         req: ClosedChannelsRequest,
     ) -> Result<ClosedChannelsResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "ClosedChannels");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "ClosedChannels");
 
         self.lightning
             .closed_channels(req)
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -370,21 +370,21 @@ impl Lnd {
         &mut self,
         req: NewAddressRequest,
     ) -> Result<NewAddressResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "NewAddress");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "NewAddress");
 
         self.lightning
             .new_address(req)
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
 
     pub async fn pending_channels(&mut self) -> Result<PendingChannelsResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "PendingChannels");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "PendingChannels");
 
         self.lightning
             .pending_channels(PendingChannelsRequest {})
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -393,11 +393,11 @@ impl Lnd {
         &mut self,
         req: impl tonic::IntoStreamingRequest<Message = ChannelAcceptResponse>,
     ) -> Result<Streaming<ChannelAcceptRequest>, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "ChannelAcceptor");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "ChannelAcceptor");
 
         self.lightning
             .channel_acceptor(req)
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -406,21 +406,21 @@ impl Lnd {
         &mut self,
         req: CloseChannelRequest,
     ) -> Result<Streaming<CloseStatusUpdate>, Status> {
-        span!(self.tracer => "lnrpc". "Lighting" / "CloseChannel");
+        let span = span!(self.tracer => "lnrpc". "Lighting" / "CloseChannel");
 
         self.lightning
             .close_channel(req)
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
 
     pub async fn send_coins(&mut self, req: SendCoinsRequest) -> Result<SendCoinsResponse, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "SendCoins");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "SendCoins");
 
         self.lightning
             .send_coins(req)
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -431,11 +431,11 @@ impl Lnd {
         &mut self,
         req: SendPaymentRequest,
     ) -> Result<Streaming<Payment>, Status> {
-        span!(self.tracer => "lnrpc". "Router" / "SendPaymentV2");
+        let span = span!(self.tracer => "lnrpc". "Router" / "SendPaymentV2");
 
         self.router
             .send_payment_v2(req)
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -445,14 +445,14 @@ impl Lnd {
         payment_hash: Vec<u8>,
         no_inflight_updates: bool,
     ) -> Result<Streaming<Payment>, Status> {
-        span!(self.tracer => "lnrpc". "Router" / "TrackPaymentV2");
+        let span = span!(self.tracer => "lnrpc". "Router" / "TrackPaymentV2");
 
         self.router
             .track_payment_v2(TrackPaymentRequest {
                 no_inflight_updates,
                 payment_hash,
             })
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -467,14 +467,14 @@ pub trait LookupInvoice {
 
 impl LookupInvoice for Lnd {
     async fn lookup_invoice(&mut self, payment_hash: Vec<u8>) -> Result<Invoice, Status> {
-        span!(self.tracer => "lnrpc". "Invoices" / "LookupInvoiceV2");
+        let span = span!(self.tracer => "lnrpc". "Invoices" / "LookupInvoiceV2");
 
         self.invoices
             .lookup_invoice_v2(LookupInvoiceMsg {
                 lookup_modifier: LookupModifier::Default as i32,
                 invoice_ref: Some(InvoiceRef::PaymentHash(payment_hash)),
             })
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -492,11 +492,11 @@ impl SubscribeSingleInvoice for Lnd {
         &mut self,
         r_hash: Vec<u8>,
     ) -> Result<Streaming<Invoice>, Status> {
-        span!(self.tracer => "lnrpc". "Invoices" / "SubscribeSingleInvoice");
+        let span = span!(self.tracer => "lnrpc". "Invoices" / "SubscribeSingleInvoice");
 
         self.invoices
             .subscribe_single_invoice(SubscribeSingleInvoiceRequest { r_hash })
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
@@ -511,11 +511,11 @@ pub trait DecodePayReq {
 
 impl DecodePayReq for Lnd {
     async fn decode_pay_req(&mut self, pay_req: String) -> Result<PayReq, Status> {
-        span!(self.tracer => "lnrpc". "Lightning" / "DecodePayReq");
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "DecodePayReq");
 
         self.lightning
             .decode_pay_req(PayReqString { pay_req })
-            .with_current_context()
+            .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
     }
