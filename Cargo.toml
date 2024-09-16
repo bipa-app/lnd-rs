@@ -10,7 +10,7 @@ name = "lnd"
 
 [dependencies]
 hex = { version = "0.4.0", features = ["std"], default-features = false }
-opentelemetry = { version = "0.24.0", features = ["trace"], default-features = false }
+opentelemetry = { version = "0.25.0", features = ["trace"], default-features = false }
 prost = { version = "0.13.0", features = ["prost-derive"], default-features = false }
 thiserror = { version = "1.0.0", default-features = false }
 tonic = { version = "0.12.0", features = ["codegen", "prost", "tls", "transport"], default-features = false }
