@@ -5,6 +5,7 @@ const PROTOS: &[&str] = &[
     "protos/invoices.proto",
     "protos/lightning.proto",
     "protos/router.proto",
+    "protos/chainkit.proto",
 ];
 
 fn main() -> Result<(), std::io::Error> {
@@ -13,5 +14,5 @@ fn main() -> Result<(), std::io::Error> {
     tonic_build::configure()
         .build_server(false)
         .out_dir(BUILD_DIR)
-        .compile(PROTOS, &[PROTOS_NS])
+        .compile_protos(PROTOS, &[PROTOS_NS])
 }

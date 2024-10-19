@@ -9,8 +9,9 @@
 /// Module including all tonic-build generated code.
 /// Each sub-module represents one proto service.
 mod gen;
-pub use gen::{invoicesrpc, lnrpc, routerrpc};
+pub use gen::{chainrpc, invoicesrpc, lnrpc, routerrpc};
 use gen::{
+    chainrpc::{chain_kit_client::ChainKitClient, GetBestBlockRequest, GetBestBlockResponse},
     invoicesrpc::{
         invoices_client::InvoicesClient, lookup_invoice_msg::InvoiceRef, AddHoldInvoiceRequest,
         AddHoldInvoiceResp, CancelInvoiceMsg, CancelInvoiceResp, LookupInvoiceMsg, LookupModifier,
@@ -20,11 +21,12 @@ use gen::{
         lightning_client::LightningClient, AddInvoiceResponse, ChannelAcceptRequest,
         ChannelAcceptResponse, ChannelBalanceRequest, ChannelBalanceResponse, CloseChannelRequest,
         CloseStatusUpdate, ClosedChannelsRequest, ClosedChannelsResponse, ForwardingHistoryRequest,
-        ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse, Invoice, ListChannelsRequest,
-        ListChannelsResponse, ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest,
-        ListPaymentsResponse, NewAddressRequest, NewAddressResponse, PayReq, PayReqString, Payment,
-        PendingChannelsRequest, PendingChannelsResponse, SendCoinsRequest, SendCoinsResponse,
-        SendRequest, SendResponse, WalletBalanceRequest, WalletBalanceResponse,
+        ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse, GetTransactionsRequest,
+        Invoice, ListChannelsRequest, ListChannelsResponse, ListInvoiceRequest,
+        ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse, NewAddressRequest,
+        NewAddressResponse, PayReq, PayReqString, Payment, PendingChannelsRequest,
+        PendingChannelsResponse, SendCoinsRequest, SendCoinsResponse, SendRequest, SendResponse,
+        TransactionDetails, WalletBalanceRequest, WalletBalanceResponse,
     },
     routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest},
 };
@@ -44,6 +46,7 @@ pub struct Lnd {
     lightning: LightningClient<InterceptedService<Channel, LndInterceptor>>,
     invoices: InvoicesClient<InterceptedService<Channel, LndInterceptor>>,
     router: RouterClient<InterceptedService<Channel, LndInterceptor>>,
+    chainkit: ChainKitClient<InterceptedService<Channel, LndInterceptor>>,
     tracer: std::sync::Arc<opentelemetry::global::BoxedTracer>,
 }
 
@@ -151,12 +154,14 @@ impl Lnd {
         let tracer = std::sync::Arc::new(opentelemetry::global::tracer("lnd"));
         let lightning = LightningClient::with_interceptor(channel.clone(), interceptor.clone());
         let invoices = InvoicesClient::with_interceptor(channel.clone(), interceptor.clone());
-        let router = RouterClient::with_interceptor(channel, interceptor);
+        let router = RouterClient::with_interceptor(channel.clone(), interceptor.clone());
+        let chainkit = ChainKitClient::with_interceptor(channel, interceptor);
 
         Lnd {
             lightning,
             invoices,
             router,
+            chainkit,
             tracer,
         }
     }
@@ -432,6 +437,31 @@ impl Lnd {
         self.lightning
             .clone()
             .send_coins(req)
+            .with_context(opentelemetry::Context::current_with_span(span))
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn get_transactions(
+        &self,
+        req: GetTransactionsRequest,
+    ) -> Result<TransactionDetails, Status> {
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "GetTransactions");
+
+        self.lightning
+            .clone()
+            .get_transactions(req)
+            .with_context(opentelemetry::Context::current_with_span(span))
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn get_best_block(&self) -> Result<GetBestBlockResponse, Status> {
+        let span = span!(self.tracer => "lnrpc". "ChainKit" / "GetBestBlock");
+
+        self.chainkit
+            .clone()
+            .get_best_block(GetBestBlockRequest::default())
             .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
