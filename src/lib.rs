@@ -18,15 +18,16 @@ use gen::{
         SettleInvoiceMsg, SettleInvoiceResp, SubscribeSingleInvoiceRequest,
     },
     lnrpc::{
-        lightning_client::LightningClient, AddInvoiceResponse, ChannelAcceptRequest,
-        ChannelAcceptResponse, ChannelBalanceRequest, ChannelBalanceResponse, CloseChannelRequest,
-        CloseStatusUpdate, ClosedChannelsRequest, ClosedChannelsResponse, ForwardingHistoryRequest,
-        ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse, GetTransactionsRequest,
-        Invoice, ListChannelsRequest, ListChannelsResponse, ListInvoiceRequest,
-        ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse, NewAddressRequest,
-        NewAddressResponse, PayReq, PayReqString, Payment, PendingChannelsRequest,
-        PendingChannelsResponse, SendCoinsRequest, SendCoinsResponse, SendRequest, SendResponse,
-        TransactionDetails, WalletBalanceRequest, WalletBalanceResponse,
+        lightning_client::LightningClient, AddInvoiceResponse, BatchOpenChannelRequest,
+        BatchOpenChannelResponse, ChannelAcceptRequest, ChannelAcceptResponse,
+        ChannelBalanceRequest, ChannelBalanceResponse, CloseChannelRequest, CloseStatusUpdate,
+        ClosedChannelsRequest, ClosedChannelsResponse, ConnectPeerRequest, ConnectPeerResponse,
+        ForwardingHistoryRequest, ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse,
+        GetTransactionsRequest, Invoice, ListChannelsRequest, ListChannelsResponse,
+        ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse,
+        NewAddressRequest, NewAddressResponse, PayReq, PayReqString, Payment,
+        PendingChannelsRequest, PendingChannelsResponse, SendCoinsRequest, SendCoinsResponse,
+        SendRequest, SendResponse, TransactionDetails, WalletBalanceRequest, WalletBalanceResponse,
     },
     routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest},
 };
@@ -462,6 +463,34 @@ impl Lnd {
         self.chainkit
             .clone()
             .get_best_block(GetBestBlockRequest::default())
+            .with_context(opentelemetry::Context::current_with_span(span))
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn connect_to_peer(
+        &self,
+        req: ConnectPeerRequest,
+    ) -> Result<ConnectPeerResponse, Status> {
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "ConnectPeer");
+
+        self.lightning
+            .clone()
+            .connect_peer(req)
+            .with_context(opentelemetry::Context::current_with_span(span))
+            .await
+            .map(Response::into_inner)
+    }
+
+    pub async fn batch_open_channel(
+        &self,
+        req: BatchOpenChannelRequest,
+    ) -> Result<BatchOpenChannelResponse, Status> {
+        let span = span!(self.tracer => "lnrpc". "Lightning" / "BatchOpenChannel");
+
+        self.lightning
+            .clone()
+            .batch_open_channel(req)
             .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
