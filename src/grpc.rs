@@ -6,6 +6,7 @@ pub mod invoicesrpc {
     tonic::include_proto!("invoicesrpc");
 }
 
+#[expect(clippy::style, reason = "codegen")]
 pub mod lnrpc {
     tonic::include_proto!("lnrpc");
 }
