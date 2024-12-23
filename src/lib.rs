@@ -8,9 +8,9 @@
 
 /// Module including all tonic-build generated code.
 /// Each sub-module represents one proto service.
-mod gen;
-pub use gen::{chainrpc, invoicesrpc, lnrpc, routerrpc};
-use gen::{
+mod grpc;
+pub use grpc::{chainrpc, invoicesrpc, lnrpc, routerrpc};
+use grpc::{
     chainrpc::{chain_kit_client::ChainKitClient, GetBestBlockRequest, GetBestBlockResponse},
     invoicesrpc::{
         invoices_client::InvoicesClient, lookup_invoice_msg::InvoiceRef, AddHoldInvoiceRequest,
