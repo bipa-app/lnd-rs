@@ -6,12 +6,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .out_dir(out_dir)
         .compile_protos(
             &[
-                "protos/invoices.proto",
-                "protos/lightning.proto",
-                "protos/router.proto",
-                "protos/chainkit.proto",
+                "proto/invoices.proto",
+                "proto/lightning.proto",
+                "proto/router.proto",
+                "proto/chainkit.proto",
             ],
-            &["protos"],
+            &["proto"],
         )
         .map_err(Into::into)
 }
