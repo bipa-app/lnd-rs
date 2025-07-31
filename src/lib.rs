@@ -11,35 +11,37 @@
 mod grpc;
 pub use grpc::{chainrpc, invoicesrpc, lnrpc, routerrpc};
 use grpc::{
-    chainrpc::{chain_kit_client::ChainKitClient, GetBestBlockRequest, GetBestBlockResponse},
+    chainrpc::{GetBestBlockRequest, GetBestBlockResponse, chain_kit_client::ChainKitClient},
     invoicesrpc::{
-        invoices_client::InvoicesClient, lookup_invoice_msg::InvoiceRef, AddHoldInvoiceRequest,
-        AddHoldInvoiceResp, CancelInvoiceMsg, CancelInvoiceResp, LookupInvoiceMsg, LookupModifier,
-        SettleInvoiceMsg, SettleInvoiceResp, SubscribeSingleInvoiceRequest,
+        AddHoldInvoiceRequest, AddHoldInvoiceResp, CancelInvoiceMsg, CancelInvoiceResp,
+        LookupInvoiceMsg, LookupModifier, SettleInvoiceMsg, SettleInvoiceResp,
+        SubscribeSingleInvoiceRequest, invoices_client::InvoicesClient,
+        lookup_invoice_msg::InvoiceRef,
     },
     lnrpc::{
-        lightning_client::LightningClient, AddInvoiceResponse, BatchOpenChannelRequest,
-        BatchOpenChannelResponse, ChannelAcceptRequest, ChannelAcceptResponse,
-        ChannelBalanceRequest, ChannelBalanceResponse, CloseChannelRequest, CloseStatusUpdate,
-        ClosedChannelsRequest, ClosedChannelsResponse, ConnectPeerRequest, ConnectPeerResponse,
-        ForwardingHistoryRequest, ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse,
-        GetTransactionsRequest, Invoice, ListChannelsRequest, ListChannelsResponse,
-        ListInvoiceRequest, ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse,
-        NewAddressRequest, NewAddressResponse, PayReq, PayReqString, Payment,
-        PendingChannelsRequest, PendingChannelsResponse, SendCoinsRequest, SendCoinsResponse,
-        SendRequest, SendResponse, TransactionDetails, WalletBalanceRequest, WalletBalanceResponse,
+        AddInvoiceResponse, BatchOpenChannelRequest, BatchOpenChannelResponse,
+        ChannelAcceptRequest, ChannelAcceptResponse, ChannelBalanceRequest, ChannelBalanceResponse,
+        CloseChannelRequest, CloseStatusUpdate, ClosedChannelsRequest, ClosedChannelsResponse,
+        ConnectPeerRequest, ConnectPeerResponse, ForwardingHistoryRequest,
+        ForwardingHistoryResponse, GetInfoRequest, GetInfoResponse, GetTransactionsRequest,
+        Invoice, ListChannelsRequest, ListChannelsResponse, ListInvoiceRequest,
+        ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse, NewAddressRequest,
+        NewAddressResponse, PayReq, PayReqString, Payment, PendingChannelsRequest,
+        PendingChannelsResponse, SendCoinsRequest, SendCoinsResponse, SendRequest, SendResponse,
+        TransactionDetails, WalletBalanceRequest, WalletBalanceResponse,
+        lightning_client::LightningClient,
     },
-    routerrpc::{router_client::RouterClient, SendPaymentRequest, TrackPaymentRequest},
+    routerrpc::{SendPaymentRequest, TrackPaymentRequest, router_client::RouterClient},
 };
 use opentelemetry::trace::{FutureExt, TraceContextExt};
 use std::convert::TryInto;
 use tonic::{
+    Response, Status, Streaming,
     codegen::{InterceptedService, StdError},
-    metadata::{errors::InvalidMetadataValue, Ascii, MetadataValue},
+    metadata::{Ascii, MetadataValue, errors::InvalidMetadataValue},
     service::Interceptor,
     transport::{Certificate, ClientTlsConfig},
     transport::{Channel, Endpoint},
-    Response, Status, Streaming,
 };
 
 #[derive(Debug, Clone)]
