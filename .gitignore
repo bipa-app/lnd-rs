@@ -1,3 +1,6 @@
 /target
 Cargo.lock
 src/gen
+examples/*/*.cert
+examples/*/*.macaroon
+examples/*/target/
