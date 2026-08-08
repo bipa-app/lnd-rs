@@ -27,9 +27,8 @@ use grpc::{
         Invoice, ListChannelsRequest, ListChannelsResponse, ListInvoiceRequest,
         ListInvoiceResponse, ListPaymentsRequest, ListPaymentsResponse, NewAddressRequest,
         NewAddressResponse, PayReq, PayReqString, Payment, PendingChannelsRequest,
-        PendingChannelsResponse, SendCoinsRequest, SendCoinsResponse, SendRequest, SendResponse,
-        TransactionDetails, WalletBalanceRequest, WalletBalanceResponse,
-        lightning_client::LightningClient,
+        PendingChannelsResponse, SendCoinsRequest, SendCoinsResponse, TransactionDetails,
+        WalletBalanceRequest, WalletBalanceResponse, lightning_client::LightningClient,
     },
     routerrpc::{SendPaymentRequest, TrackPaymentRequest, router_client::RouterClient},
 };
@@ -317,20 +316,6 @@ impl Lnd {
             .map(Response::into_inner)
     }
 
-    pub async fn send_payment_sync(
-        &self,
-        send_request: SendRequest,
-    ) -> Result<SendResponse, Status> {
-        let span = span!(self.tracer => "lnrpc". "Lightning" / "SendPaymentSync");
-
-        self.lightning
-            .clone()
-            .send_payment_sync(send_request)
-            .with_context(opentelemetry::Context::current_with_span(span))
-            .await
-            .map(Response::into_inner)
-    }
-
     pub async fn wallet_balance(&self) -> Result<WalletBalanceResponse, Status> {
         let span = span!(self.tracer => "lnrpc". "Lightning" / "WalletBalance");
 
@@ -400,7 +385,9 @@ impl Lnd {
 
         self.lightning
             .clone()
-            .pending_channels(PendingChannelsRequest {})
+            .pending_channels(PendingChannelsRequest {
+                include_raw_tx: false,
+            })
             .with_context(opentelemetry::Context::current_with_span(span))
             .await
             .map(Response::into_inner)
